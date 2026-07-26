@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d0c0b">
+<title>Range Timer</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Header -->
+  <header class="topbar">
+    <span class="eyebrow">RANGE TIMER</span>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="COMSTOCK">COMSTOCK</button>
+      <button class="mode-tab" data-mode="VIRGINIA">VIRGINIA</button>
+      <button class="mode-tab" data-mode="PAR">PAR</button>
+    </div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+  </header>
+
+  <!-- Status strip: mic level + arm state -->
+  <div class="status-strip">
+    <div class="mic-wave" id="micWave">
+      <svg viewBox="0 0 300 40" preserveAspectRatio="none" id="waveSvg">
+        <polyline id="wavePoly" points="" />
+      </svg>
+    </div>
+    <div class="state-pill" id="statePill">IDLE</div>
+  </div>
+
+  <!-- Main display -->
+  <main class="display-wrap">
+    <div class="split-row">
+      <span class="split-label">SPLIT</span>
+      <span class="split-value" id="splitValue">0.00</span>
+      <span class="shot-count" id="shotCount">#0</span>
+    </div>
+    <div class="big-time" id="bigTime">0.00</div>
+    <div class="sub-row" id="subRow">MAX TIME: <span id="maxTimeLabel">—</span></div>
+  </main>
+
+  <!-- Shot log -->
+  <section class="shot-log-wrap">
+    <div class="shot-log-header">
+      <span>#</span><span>TIME</span><span>SPLIT</span>
+    </div>
+    <div class="shot-log" id="shotLog"></div>
+  </section>
+
+  <!-- Controls -->
+  <footer class="controls">
+    <button class="btn btn-ghost" id="hitFactorBtn">SCORE</button>
+    <button class="btn btn-primary" id="startBtn">START</button>
+    <button class="btn btn-ghost" id="resetBtn">RESET</button>
+  </footer>
+
+</div>
+
+<!-- Calibration modal -->
+<div class="modal-backdrop hidden" id="calModal">
+  <div class="modal">
+    <h2>Calibrate mic</h2>
+    <p id="calInstructions">Fire one shot (or clap loudly) within the window below. We'll set the detection threshold from the peak we hear.</p>
+    <div class="cal-wave-box">
+      <svg viewBox="0 0 300 80" preserveAspectRatio="none" id="calWaveSvg">
+        <polyline id="calWavePoly" points="" />
+        <line id="calThresholdLine" x1="0" y1="40" x2="300" y2="40" />
+      </svg>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="calProgress"></div></div>
+    <div class="cal-readout" id="calReadout">Listening…</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="calCancelBtn">Cancel</button>
+      <button class="btn btn-primary hidden" id="calRetestBtn">Test again</button>
+      <button class="btn btn-primary hidden" id="calAcceptBtn">Use this</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-backdrop hidden" id="settingsModal">
+  <div class="modal">
+    <h2>Settings</h2>
+
+    <div class="field-row">
+      <label>Random delay</label>
+      <div class="range-pair">
+        <input type="number" id="delayMin" step="0.1" min="0.5" value="1.0"> –
+        <input type="number" id="delayMax" step="0.1" min="0.5" value="4.0"> s
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Sensitivity</label>
+      <input type="range" id="sensSlider" min="0" max="100" value="60">
+      <span id="sensReadout">60%</span>
+    </div>
+
+    <div class="field-row">
+      <label>Par time (PAR mode)</label>
+      <div class="range-pair">
+        <input type="number" id="parTime" step="0.1" min="0.5" value="6.0"> s
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Max time (VIRGINIA)</label>
+      <div class="range-pair">
+        <input type="number" id="maxTime" step="0.5" min="1" value="10"> s
+      </div>
+    </div>
+
+    <button class="btn btn-primary full" id="calibrateBtn">Calibrate microphone</button>
+    <div class="cal-status" id="calStatusLine">Not calibrated yet — using default sensitivity.</div>
+
+    <button class="btn btn-ghost full" id="settingsCloseBtn">Close</button>
+  </div>
+</div>
+
+<!-- Hit factor / scoring modal -->
+<div class="modal-backdrop hidden" id="scoreModal">
+  <div class="modal">
+    <h2>Score string</h2>
+    <p class="score-time">Final time: <span id="scoreTime">0.00</span>s</p>
+
+    <div class="score-grid" id="scoreGrid">
+      <!-- rows injected by JS -->
+    </div>
+
+    <div class="hf-readout">
+      <span>Points: <b id="scorePoints">0</b></span>
+      <span>Hit Factor: <b id="scoreHF">0.00</b></span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="scoreCloseBtn">Close</button>
+      <button class="btn btn-primary" id="scoreSaveBtn">Save to history</button>
+    </div>
+  </div>
+</div>
+
+<audio id="beepAudio" preload="auto"></audio>
+
+<script src="js/audioDetector.js"></script>
+<script src="js/hitFactor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
