@@ -254,13 +254,19 @@
       return;
     }
 
-    const elapsed = startPerfTime ? (performance.now() - startPerfTime) / 1000 : 0;
-    els.bigTime.textContent = fmt(elapsed);
+    // The recorded time is always the last shot heard, never the moment
+    // the stop button was pressed (or the buzzer, for VIRGINIA/PAR) —
+    // otherwise reaction time to hit STOP, or finishing early before the
+    // par/max buzzer, would inflate the string time and tank the hit factor.
+    const rawElapsed = startPerfTime ? (performance.now() - startPerfTime) / 1000 : 0;
+    const finalTime = shots.length ? shots[shots.length - 1].time : rawElapsed;
+
+    els.bigTime.textContent = fmt(finalTime);
     phase = 'STOPPED';
     setStatePill('STOPPED', 'stopped');
     els.startBtn.textContent = 'START';
     els.startBtn.classList.remove('running');
-    lastFinalTime = elapsed;
+    lastFinalTime = finalTime;
   }
 
   let lastFinalTime = 0;
