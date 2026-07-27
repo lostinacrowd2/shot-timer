@@ -45,11 +45,19 @@ class AudioDetector {
     });
     this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     this.source = this.audioCtx.createMediaStreamSource(this.stream);
+
+    // Add high-pass filter to remove low-frequency noise (wind, handling)
+    this.filter = this.audioCtx.createBiquadFilter();
+    this.filter.type = 'highpass';
+    this.filter.frequency.value = 500;
+
     this.analyser = this.audioCtx.createAnalyser();
     this.analyser.fftSize = 1024;
     this.analyser.smoothingTimeConstant = 0;
     this.dataArray = new Uint8Array(this.analyser.fftSize);
-    this.source.connect(this.analyser);
+
+    this.source.connect(this.filter);
+    this.filter.connect(this.analyser);
   }
 
   /** Effective threshold given calibration + sensitivity slider */
@@ -89,13 +97,22 @@ class AudioDetector {
       if (this.armed) {
         const now = performance.now();
         if (level >= this.threshold && (now - this.lastShotTime) > this.refractoryMs) {
-          this.lastShotTime = now;
-          if (this.onShot) this.onShot(now, level);
+          this.triggerShot(now, level);
         }
       }
       this.rafId = requestAnimationFrame(loop);
     };
     this.rafId = requestAnimationFrame(loop);
+  }
+
+  triggerShot(timeMs, level) {
+    const now = timeMs || performance.now();
+    if ((now - this.lastShotTime) > this.refractoryMs) {
+      this.lastShotTime = now;
+      if (this.onShot) this.onShot(now, level || 0);
+      return true;
+    }
+    return false;
   }
 
   stop() {

@@ -247,6 +247,9 @@ html, body {
   border-radius: 8px; padding: 8px; font-size: 14px;
 }
 #sensSlider { width: 100%; accent-color: #FF9D1F; }
+.check-label { display: flex !important; align-items: center; gap: 10px; color: #EDE7DC !important; cursor: pointer; }
+.check-label input { width: 18px; height: 18px; accent-color: #FF9D1F; }
+.field-hint { margin: 4px 0 0 28px !important; font-size: 11px !important; opacity: 0.8; }
 .cal-status { font-size: 12px; color: #8A8377; margin: 8px 0 4px; }
 
 /* Score modal */

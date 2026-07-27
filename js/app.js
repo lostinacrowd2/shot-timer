@@ -38,6 +38,7 @@
     maxTime: $('maxTime'),
     calibrateBtn: $('calibrateBtn'),
     calStatusLine: $('calStatusLine'),
+    recoilEnabled: $('recoilEnabled'),
     settingsCloseBtn: $('settingsCloseBtn'),
 
     scoreModal: $('scoreModal'),
@@ -68,6 +69,7 @@
     sensitivity: 60,
     parTime: 6.0,
     maxTime: 10,
+    recoilEnabled: false,
     calibratedThreshold: null
   }, loadSettings());
 
@@ -78,6 +80,7 @@
   els.sensReadout.textContent = settings.sensitivity + '%';
   els.parTime.value = settings.parTime;
   els.maxTime.value = settings.maxTime;
+  els.recoilEnabled.checked = settings.recoilEnabled;
 
   // ---------- State ----------
   let mode = 'COMSTOCK'; // COMSTOCK | VIRGINIA | PAR
@@ -91,6 +94,18 @@
   const detector = new AudioDetector();
   detector.sensitivity = settings.sensitivity / 100;
   detector.calibratedThreshold = settings.calibratedThreshold;
+
+  // ---------- Motion (Recoil) Detection ----------
+  function onMotion(e) {
+    if (phase !== 'LIVE' || !detector.armed || !settings.recoilEnabled) return;
+    const acc = e.acceleration || e.accelerationIncludingGravity;
+    if (!acc) return;
+    const total = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+    // 25 m/s² is roughly 2.5G, a sharp jar.
+    if (total > 25) {
+      detector.triggerShot(performance.now(), 0.9);
+    }
+  }
 
   // ---------- Beep synthesis (no audio file needed) ----------
   let sharedCtx = null;
@@ -198,6 +213,13 @@
     detector.start({ armed: false });
     detector.onLevel = pushWaveSample;
 
+    if (settings.recoilEnabled) {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().catch(() => {});
+      }
+      window.addEventListener('devicemotion', onMotion);
+    }
+
     const dMin = Math.max(0.2, parseFloat(els.delayMin.value) || 1);
     const dMax = Math.max(dMin, parseFloat(els.delayMax.value) || 4);
     const delayMs = (dMin + Math.random() * (dMax - dMin)) * 1000;
@@ -209,6 +231,9 @@
 
   function startRunLive() {
     beep();
+    if ('vibrate' in navigator) {
+      navigator.vibrate(1000);
+    }
     startPerfTime = performance.now();
     phase = 'LIVE';
     setStatePill('LIVE', 'live');
@@ -243,6 +268,7 @@
   function finishRun(reason) {
     if (armTimeoutId) clearTimeout(armTimeoutId);
     if (endTimeoutId) clearTimeout(endTimeoutId);
+    window.removeEventListener('devicemotion', onMotion);
     stopDisplayLoop();
     detector.armed = false;
 
@@ -276,6 +302,7 @@
   function resetRun(resetDisplay = true) {
     if (armTimeoutId) clearTimeout(armTimeoutId);
     if (endTimeoutId) clearTimeout(endTimeoutId);
+    window.removeEventListener('devicemotion', onMotion);
     stopDisplayLoop();
     shots = [];
     phase = 'IDLE';
@@ -312,6 +339,7 @@
     settings.sensitivity = parseInt(els.sensSlider.value, 10);
     settings.parTime = parseFloat(els.parTime.value);
     settings.maxTime = parseFloat(els.maxTime.value);
+    settings.recoilEnabled = els.recoilEnabled.checked;
     detector.sensitivity = settings.sensitivity / 100;
     saveSettings(settings);
     els.settingsModal.classList.add('hidden');
