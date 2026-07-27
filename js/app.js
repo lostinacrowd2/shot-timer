@@ -48,6 +48,18 @@
     scoreHF: $('scoreHF'),
     scoreCloseBtn: $('scoreCloseBtn'),
     scoreSaveBtn: $('scoreSaveBtn'),
+
+    historyBtn: $('historyBtn'),
+    historyModal: $('historyModal'),
+    historyList: $('historyList'),
+    historyCloseBtn: $('historyCloseBtn'),
+    exportCsvBtn: $('exportCsvBtn'),
+
+    detailModal: $('detailModal'),
+    detailStats: $('detailStats'),
+    detailChart: $('detailChart'),
+    detailCloseBtn: $('detailCloseBtn'),
+    detailTitle: $('detailTitle'),
   };
 
   // ---------- Persistent settings ----------
@@ -464,12 +476,107 @@
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     history.unshift({
       date: new Date().toISOString(),
-      mode, time: lastFinalTime, shots: shots.length,
+      mode, time: lastFinalTime, shots: [...shots], // clone shots
       counts: { ...scoreCounts }, points, hitFactor: hf
     });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
     els.scoreModal.classList.add('hidden');
+    showToast('Run saved to history');
   });
+
+  // ---------- History & Analytics ----------
+  function renderHistoryList() {
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    els.historyList.innerHTML = '';
+    if (history.length === 0) {
+      els.historyList.innerHTML = '<div style="text-align:center; padding:40px; color:#8A8377;">No history yet.</div>';
+      return;
+    }
+    history.forEach((run, idx) => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="history-meta">
+          <span class="history-date">${new Date(run.date).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+          <span class="history-mode">${run.mode} · ${run.shots.length} SHOTS</span>
+        </div>
+        <div class="history-score">
+          <span class="history-hf">${run.hitFactor.toFixed(4)} HF</span>
+          <div class="history-time">${run.time.toFixed(2)}s</div>
+        </div>
+      `;
+      item.addEventListener('click', () => renderRunDetail(run));
+      els.historyList.appendChild(item);
+    });
+  }
+
+  function renderRunDetail(run) {
+    els.detailTitle.textContent = `${run.mode} - ${new Date(run.date).toLocaleDateString()}`;
+    const firstShot = run.shots.length ? run.shots[0].time : 0;
+    const avgSplit = run.shots.length > 1
+      ? (run.time - firstShot) / (run.shots.length - 1)
+      : 0;
+
+    els.detailStats.innerHTML = `
+      <div class="stat-box"><span class="stat-label">Draw</span><span class="stat-val">${firstShot.toFixed(2)}</span></div>
+      <div class="stat-box"><span class="stat-label">Avg Split</span><span class="stat-val">${avgSplit.toFixed(2)}</span></div>
+      <div class="stat-box"><span class="stat-label">Factor</span><span class="stat-val">${run.hitFactor.toFixed(2)}</span></div>
+    `;
+
+    // Render SVG chart
+    let chartHtml = '<div class="split-chart">';
+    if (run.shots.length > 1) {
+      const splits = run.shots.slice(1).map(s => s.split);
+      const maxSplit = Math.max(...splits, 0.5);
+      splits.forEach(s => {
+        const height = (s / maxSplit) * 100;
+        // transitions in USPSA are typically > 0.3s, splits on one target < 0.25s
+        const isTransition = s > 0.35;
+        chartHtml += `<div class="chart-bar ${isTransition ? 'transition' : ''}" style="height:${height}%" data-val="${s.toFixed(2)}"></div>`;
+      });
+    } else {
+      chartHtml += '<div style="color:#8A8377; width:100%; text-align:center;">Not enough shots for split chart.</div>';
+    }
+    chartHtml += '</div>';
+    els.detailChart.innerHTML = chartHtml;
+
+    els.detailModal.classList.remove('hidden');
+  }
+
+  function exportHistoryToCSV() {
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    if (history.length === 0) return;
+
+    let csv = 'Date,Mode,Time,Shots,Points,Hit Factor,Shot #,Shot Time,Split\n';
+    history.forEach(run => {
+      const base = `${run.date},${run.mode},${run.time},${run.shots.length},${run.points},${run.hitFactor}`;
+      if (run.shots.length === 0) {
+        csv += `${base},0,0,0\n`;
+      } else {
+        run.shots.forEach((s, i) => {
+          csv += `${base},${i+1},${s.time},${s.split}\n`;
+        });
+      }
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shot_timer_history_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+
+  els.historyBtn.addEventListener('click', () => {
+    renderHistoryList();
+    els.historyModal.classList.remove('hidden');
+  });
+  els.historyCloseBtn.addEventListener('click', () => els.historyModal.classList.add('hidden'));
+  els.detailCloseBtn.addEventListener('click', () => els.detailModal.classList.add('hidden'));
+  els.exportCsvBtn.addEventListener('click', exportHistoryToCSV);
 
   // ---------- Toast ----------
   let toastTimer = null;

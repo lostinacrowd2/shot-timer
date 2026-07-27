@@ -59,6 +59,7 @@
       <button class="mode-tab" data-mode="PAR">PAR</button>
     </div>
     <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
+    <button class="icon-btn" id="historyBtn" aria-label="History">📋</button>
     <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
   </footer>
 
@@ -151,6 +152,47 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="scoreCloseBtn">Close</button>
       <button class="btn btn-primary" id="scoreSaveBtn">Save to history</button>
+    </div>
+
+    <!-- Minimal Ad Placeholder -->
+    <div class="ad-placeholder">
+      <span class="ad-label">ADVERTISEMENT</span>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-backdrop hidden" id="historyModal">
+  <div class="modal full-height">
+    <div class="modal-header">
+      <h2>History</h2>
+      <button class="btn btn-ghost sm" id="exportCsvBtn">Export CSV</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <!-- items injected by JS -->
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="historyCloseBtn">Close</button>
+    </div>
+    <div class="ad-placeholder">
+      <span class="ad-label">ADVERTISEMENT</span>
+    </div>
+  </div>
+</div>
+
+<!-- Run Detail Modal -->
+<div class="modal-backdrop hidden" id="detailModal">
+  <div class="modal">
+    <h2 id="detailTitle">Run Detail</h2>
+    <div class="detail-stats" id="detailStats">
+      <!-- stats injected by JS -->
+    </div>
+    <div class="detail-chart-wrap">
+      <h3>Split Rhythm</h3>
+      <div id="detailChart"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="detailCloseBtn">Back</button>
     </div>
   </div>
 </div>

@@ -298,6 +298,105 @@ html, body {
   box-shadow: 0 4px 18px rgba(0,0,0,0.4);
 }
 
+/* ---------- Ads & History ---------- */
+.ad-placeholder {
+  background: #0D0C0B;
+  border: 1px dashed #2A2620;
+  height: 60px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.ad-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #8A8377;
+  font-weight: 700;
+}
+
+.modal.full-height {
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.btn.sm { padding: 8px 12px; font-size: 12px; }
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 -10px;
+  padding: 0 10px;
+}
+.history-item {
+  background: #0D0C0B;
+  border: 1px solid #2A2620;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.history-item:active { background: #17140F; }
+.history-meta { display: flex; flex-direction: column; gap: 2px; }
+.history-date { font-size: 10px; color: #8A8377; }
+.history-mode { font-size: 12px; font-weight: 800; color: #EDE7DC; }
+.history-score { text-align: right; }
+.history-hf { font-size: 16px; font-weight: 800; color: #FF9D1F; }
+.history-time { font-size: 11px; color: #8A8377; }
+
+.detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 16px 0;
+}
+.stat-box {
+  background: #0D0C0B;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+}
+.stat-label { font-size: 9px; color: #8A8377; font-weight: 700; text-transform: uppercase; }
+.stat-val { font-size: 16px; font-weight: 800; color: #EDE7DC; display: block; }
+
+.detail-chart-wrap h3 { font-size: 12px; color: #8A8377; margin-bottom: 8px; }
+.split-chart {
+  height: 120px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #2A2620;
+}
+.chart-bar {
+  flex: 1;
+  background: #FF9D1F;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  min-width: 12px;
+}
+.chart-bar::after {
+  content: attr(data-val);
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: #8A8377;
+  font-weight: 700;
+}
+.chart-bar.transition { background: #E4432B; }
+
 @media (min-width: 481px) {
   #app { border-left: 1px solid #2A2620; border-right: 1px solid #2A2620; }
 }
