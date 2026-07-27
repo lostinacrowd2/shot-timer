@@ -20,6 +20,40 @@ localhost, e.g. `http://192.168.1.42:8000` (mic access still requires
 `localhost` or `https` — LAN IP over plain http will be blocked by Chrome,
 so for phone testing push to GitHub Pages instead, see below).
 
+## Packaging for the Play Store
+
+Two files are already scaffolded for this:
+
+- **`.well-known/assetlinks.json`** — proves you own both the app and the
+  domain so Android hides the browser address bar (Trusted Web Activity).
+  It has a placeholder `sha256_cert_fingerprints` value — after you
+  generate the signed package on [pwabuilder.com](https://pwabuilder.com),
+  it'll show you the real SHA-256 fingerprint (or you can get it from
+  Play Console → your app → Setup → App signing). Replace the placeholder
+  with that value and push — it must be live at
+  `https://lostinacrowd2.github.io/shot-timer/.well-known/assetlinks.json`
+  for verification to pass.
+- **`privacy.html`** — Play Console requires a privacy policy URL even for
+  apps that collect nothing. Once Pages is live it's at
+  `https://lostinacrowd2.github.io/shot-timer/privacy.html` — use that
+  exact URL in the Play Console listing.
+
+Steps:
+
+1. Confirm GitHub Pages is enabled and live at the repo URL.
+2. Go to [pwabuilder.com](https://pwabuilder.com), enter
+   `https://lostinacrowd2.github.io/shot-timer/`, click Start.
+3. **Package for stores → Android** → download the generated package
+   (includes a signed `.aab` and the real SHA-256 fingerprint).
+4. Update `.well-known/assetlinks.json` with that fingerprint, commit, push.
+5. Create a [Play Console](https://play.google.com/console) account
+   ($25 one-time), create a new app, upload the `.aab`.
+6. Fill out the store listing — use the `privacy.html` URL above for the
+   privacy policy field.
+7. Use the **Internal testing** track first to sideload to your own
+   phone in minutes without waiting on review; move to Production when
+   you're happy with it.
+
 ## Deploy to GitHub Pages (free hosting + real HTTPS)
 
 ```bash

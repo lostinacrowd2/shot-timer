@@ -7,6 +7,7 @@ const ASSETS = [
   './js/audioDetector.js',
   './js/hitFactor.js',
   './manifest.json',
+  './privacy.html',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
