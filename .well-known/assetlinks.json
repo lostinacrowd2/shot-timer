@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.aerialinsightsllc.shottimer",
+      "package_name": "com.RangeTimer",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
+        "7D:B3:BB:86:7E:59:7E:1C:08:DD:0B:97:06:FD:50:DC:55:70:C7:AE:D2:FE:EC:5F:E5:29:42:12:04:3C:8E:DD"
       ]
     }
   }
