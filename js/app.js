@@ -5,6 +5,8 @@
   const els = {
     modeTabs: $('modeTabs'),
     settingsBtn: $('settingsBtn'),
+    reloadBtn: $('reloadBtn'),
+    toast: $('toast'),
     statePill: $('statePill'),
     wavePoly: $('wavePoly'),
     splitValue: $('splitValue'),
@@ -441,10 +443,63 @@
     els.scoreModal.classList.add('hidden');
   });
 
+  // ---------- Toast ----------
+  let toastTimer = null;
+  function showToast(msg, ms = 2500) {
+    els.toast.textContent = msg;
+    els.toast.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.add('hidden'), ms);
+  }
+
+  // ---------- Update from repo ----------
+  // The service worker caches every asset for offline use, which means a
+  // plain page refresh (even a manual one on GitHub Pages) can still serve
+  // the old cached copy. This tears down the SW + cache and force-fetches
+  // everything fresh from the deployed repo.
+  async function forceUpdateFromRepo() {
+    showToast('Checking for updates…', 60000);
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch (e) {
+      // fall through to reload regardless — worst case it's a normal refresh
+    }
+    const url = new URL(location.href);
+    url.searchParams.set('_v', Date.now()); // cache-bust the reload itself
+    location.href = url.toString();
+  }
+
+  els.reloadBtn.addEventListener('click', () => {
+    if (confirm('Reload the latest version from GitHub Pages? Unsaved shot data on screen will be lost (saved history is kept).')) {
+      forceUpdateFromRepo();
+    }
+  });
+
   // ---------- Service worker ----------
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        // Silent background check each launch — if a newer sw.js is found,
+        // let the user know via the reload button instead of auto-swapping
+        // mid-session (which could wipe an in-progress string).
+        reg.update().catch(() => {});
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showToast('Update available — tap ⟳ to reload', 6000);
+            }
+          });
+        });
+      }).catch(() => {});
     });
   }
 })();

@@ -279,6 +279,21 @@ html, body {
 
 .hidden { display: none !important; }
 
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%);
+  background: #17140F;
+  border: 1px solid #2A2620;
+  color: #EDE7DC;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  z-index: 100;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+}
+
 @media (min-width: 481px) {
   #app { border-left: 1px solid #2A2620; border-right: 1px solid #2A2620; }
 }
