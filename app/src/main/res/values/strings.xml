@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Shot Timer</string>
+    <string name="asset_statements">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://lostinacrowd2.github.io/shot-timer/\"
+            }
+        }]
+    </string>
+</resources>

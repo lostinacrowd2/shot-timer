@@ -14,16 +14,11 @@
 
 <div id="app">
 
-  <!-- Header -->
-  <header class="topbar">
-    <span class="eyebrow">RANGE TIMER</span>
-    <div class="mode-tabs" id="modeTabs">
-      <button class="mode-tab active" data-mode="COMSTOCK">COMSTOCK</button>
-      <button class="mode-tab" data-mode="VIRGINIA">VIRGINIA</button>
-      <button class="mode-tab" data-mode="PAR">PAR</button>
-    </div>
-    <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
-    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+  <!-- Controls (Moved to top) -->
+  <header class="controls">
+    <button class="btn btn-ghost" id="hitFactorBtn">SCORE</button>
+    <button class="btn btn-primary" id="startBtn">START</button>
+    <button class="btn btn-ghost" id="resetBtn">RESET</button>
   </header>
 
   <!-- Status strip: mic level + arm state -->
@@ -55,11 +50,16 @@
     <div class="shot-log" id="shotLog"></div>
   </section>
 
-  <!-- Controls -->
-  <footer class="controls">
-    <button class="btn btn-ghost" id="hitFactorBtn">SCORE</button>
-    <button class="btn btn-primary" id="startBtn">START</button>
-    <button class="btn btn-ghost" id="resetBtn">RESET</button>
+  <!-- Header (Moved to bottom) -->
+  <footer class="topbar">
+    <span class="eyebrow">RANGE TIMER</span>
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="COMSTOCK">COMSTOCK</button>
+      <button class="mode-tab" data-mode="VIRGINIA">VIRGINIA</button>
+      <button class="mode-tab" data-mode="PAR">PAR</button>
+    </div>
+    <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
   </footer>
 
 </div>
