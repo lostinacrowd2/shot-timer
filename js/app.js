@@ -144,17 +144,31 @@
 
   // ---------- Beep synthesis (no audio file needed) ----------
   let sharedCtx = null;
-  function beep({ freq = 1800, durationMs = 120 } = {}) {
+  function beep({ freq = 2500, durationMs = 120 } = {}) {
     sharedCtx = sharedCtx || new (window.AudioContext || window.webkitAudioContext)();
     const ctx = sharedCtx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const compressor = ctx.createDynamicsCompressor();
+
+    // Compressor settings to maximize loudness without digital clipping
+    compressor.threshold.setValueAtTime(-12, ctx.currentTime);
+    compressor.knee.setValueAtTime(30, ctx.currentTime);
+    compressor.ratio.setValueAtTime(12, ctx.currentTime);
+    compressor.attack.setValueAtTime(0, ctx.currentTime);
+    compressor.release.setValueAtTime(0.25, ctx.currentTime);
+
     osc.type = 'square';
     osc.frequency.value = freq;
+
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.9, ctx.currentTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs / 1000);
-    osc.connect(gain).connect(ctx.destination);
+
+    osc.connect(gain);
+    gain.connect(compressor);
+    compressor.connect(ctx.destination);
+
     osc.start();
     osc.stop(ctx.currentTime + durationMs / 1000 + 0.02);
   }
@@ -265,7 +279,7 @@
   }
 
   function startRunLive() {
-    beep();
+    beep({ durationMs: 300 });
     if ('vibrate' in navigator) {
       navigator.vibrate(1000);
     }
