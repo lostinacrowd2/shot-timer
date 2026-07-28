@@ -58,8 +58,11 @@
     detailModal: $('detailModal'),
     detailStats: $('detailStats'),
     detailChart: $('detailChart'),
+    detailDeleteBtn: $('detailDeleteBtn'),
+    detailEditBtn: $('detailEditBtn'),
     detailCloseBtn: $('detailCloseBtn'),
     detailTitle: $('detailTitle'),
+    pfTabs: $('pfTabs'),
   };
 
   // ---------- Persistent settings ----------
@@ -82,6 +85,7 @@
     parTime: 6.0,
     maxTime: 10,
     recoilEnabled: false,
+    powerFactor: 'minor',
     calibratedThreshold: null
   }, loadSettings());
 
@@ -102,10 +106,29 @@
   let displayRafId = null;
   let armTimeoutId = null;
   let endTimeoutId = null;
+  let editingRunDate = null; // null if new run, ISO string if editing history
 
   const detector = new AudioDetector();
   detector.sensitivity = settings.sensitivity / 100;
   detector.calibratedThreshold = settings.calibratedThreshold;
+
+  let powerFactor = settings.powerFactor;
+  function updatePfTabs() {
+    [...els.pfTabs.children].forEach(b => {
+      b.classList.toggle('active', b.dataset.pf === powerFactor);
+    });
+  }
+  updatePfTabs();
+
+  els.pfTabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-tab');
+    if (!btn) return;
+    powerFactor = btn.dataset.pf;
+    settings.powerFactor = powerFactor;
+    saveSettings(settings);
+    updatePfTabs();
+    updateScoreReadout();
+  });
 
   // ---------- Motion (Recoil) Detection ----------
   function onMotion(e) {
@@ -428,7 +451,6 @@
 
   // ---------- Scoring modal ----------
   let scoreCounts = { A: 0, C: 0, D: 0, M: 0, NS: 0, PE: 0 };
-  let powerFactor = 'minor';
 
   function buildScoreGrid() {
     els.scoreGrid.innerHTML = '';
@@ -463,8 +485,10 @@
   }
 
   els.hitFactorBtn.addEventListener('click', () => {
+    editingRunDate = null;
     scoreCounts = { A: 0, C: 0, D: 0, M: 0, NS: 0, PE: 0 };
     els.scoreTime.textContent = fmt(lastFinalTime || 0);
+    els.scoreSaveBtn.textContent = 'Save to history';
     buildScoreGrid();
     updateScoreReadout();
     els.scoreModal.classList.remove('hidden');
@@ -474,14 +498,31 @@
     const points = USPSA.calcPoints(scoreCounts, powerFactor);
     const hf = USPSA.calcHitFactor(points, lastFinalTime);
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    history.unshift({
-      date: new Date().toISOString(),
-      mode, time: lastFinalTime, shots: [...shots], // clone shots
-      counts: { ...scoreCounts }, points, hitFactor: hf
-    });
+
+    if (editingRunDate) {
+      const idx = history.findIndex(r => r.date === editingRunDate);
+      if (idx !== -1) {
+        history[idx].counts = { ...scoreCounts };
+        history[idx].points = points;
+        history[idx].hitFactor = hf;
+        history[idx].powerFactor = powerFactor;
+      }
+    } else {
+      history.unshift({
+        date: new Date().toISOString(),
+        mode, time: lastFinalTime, shots: [...shots], // clone shots
+        counts: { ...scoreCounts }, points, hitFactor: hf,
+        powerFactor: powerFactor
+      });
+    }
+
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
     els.scoreModal.classList.add('hidden');
-    showToast('Run saved to history');
+    showToast(editingRunDate ? 'Run updated' : 'Run saved to history');
+    if (editingRunDate) {
+      els.detailModal.classList.add('hidden');
+      renderHistoryList();
+    }
   });
 
   // ---------- History & Analytics ----------
@@ -498,7 +539,7 @@
       item.innerHTML = `
         <div class="history-meta">
           <span class="history-date">${new Date(run.date).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
-          <span class="history-mode">${run.mode} · ${run.shots.length} SHOTS</span>
+          <span class="history-mode">${run.mode} · ${run.shots.length} SHOTS (${run.powerFactor || 'minor'})</span>
         </div>
         <div class="history-score">
           <span class="history-hf">${run.hitFactor.toFixed(4)} HF</span>
@@ -510,7 +551,9 @@
     });
   }
 
+  let activeRun = null;
   function renderRunDetail(run) {
+    activeRun = run;
     els.detailTitle.textContent = `${run.mode} - ${new Date(run.date).toLocaleDateString()}`;
     const firstShot = run.shots.length ? run.shots[0].time : 0;
     const avgSplit = run.shots.length > 1
@@ -543,13 +586,46 @@
     els.detailModal.classList.remove('hidden');
   }
 
+  function deleteActiveRun() {
+    if (!activeRun) return;
+    if (!confirm('Are you sure you want to delete this run?')) return;
+
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const newHistory = history.filter(r => r.date !== activeRun.date);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+
+    els.detailModal.classList.add('hidden');
+    renderHistoryList();
+    showToast('Run deleted');
+  }
+
+  function editActiveRun() {
+    if (!activeRun) return;
+    editingRunDate = activeRun.date;
+    scoreCounts = { ...activeRun.counts };
+    powerFactor = activeRun.powerFactor || 'minor';
+    lastFinalTime = activeRun.time;
+
+    els.scoreTime.textContent = fmt(lastFinalTime);
+    els.scoreSaveBtn.textContent = 'Update entry';
+    updatePfTabs();
+    buildScoreGrid();
+    // Update stepper counts
+    for (const cat in scoreCounts) {
+      const countEl = $('count_' + cat);
+      if (countEl) countEl.textContent = scoreCounts[cat];
+    }
+    updateScoreReadout();
+    els.scoreModal.classList.remove('hidden');
+  }
+
   function exportHistoryToCSV() {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     if (history.length === 0) return;
 
-    let csv = 'Date,Mode,Time,Shots,Points,Hit Factor,Shot #,Shot Time,Split\n';
+    let csv = 'Date,Mode,Time,Shots,Points,Hit Factor,Power Factor,Shot #,Shot Time,Split\n';
     history.forEach(run => {
-      const base = `${run.date},${run.mode},${run.time},${run.shots.length},${run.points},${run.hitFactor}`;
+      const base = `${run.date},${run.mode},${run.time},${run.shots.length},${run.points},${run.hitFactor},${run.powerFactor || 'minor'}`;
       if (run.shots.length === 0) {
         csv += `${base},0,0,0\n`;
       } else {
@@ -576,6 +652,8 @@
   });
   els.historyCloseBtn.addEventListener('click', () => els.historyModal.classList.add('hidden'));
   els.detailCloseBtn.addEventListener('click', () => els.detailModal.classList.add('hidden'));
+  els.detailDeleteBtn.addEventListener('click', deleteActiveRun);
+  els.detailEditBtn.addEventListener('click', editActiveRun);
   els.exportCsvBtn.addEventListener('click', exportHistoryToCSV);
 
   // ---------- Toast ----------

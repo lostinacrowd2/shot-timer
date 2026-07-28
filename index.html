@@ -146,6 +146,14 @@
       <!-- rows injected by JS -->
     </div>
 
+    <div class="field-row">
+      <label>Power Factor</label>
+      <div class="mode-tabs" id="pfTabs">
+        <button class="mode-tab active" data-pf="minor">MINOR</button>
+        <button class="mode-tab" data-pf="major">MAJOR</button>
+      </div>
+    </div>
+
     <div class="hf-readout">
       <span>Points: <b id="scorePoints">0</b></span>
       <span>Hit Factor: <b id="scoreHF">0.00</b></span>
@@ -210,7 +218,9 @@
       <div id="detailChart"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost full" id="detailCloseBtn">Back</button>
+      <button class="btn btn-ghost" id="detailDeleteBtn" style="color: #E4432B;">Delete</button>
+      <button class="btn btn-ghost" id="detailEditBtn">Edit Hits</button>
+      <button class="btn btn-ghost" id="detailCloseBtn">Back</button>
     </div>
   </div>
 </div>
