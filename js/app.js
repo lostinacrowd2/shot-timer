@@ -499,10 +499,15 @@
   }
 
   els.hitFactorBtn.addEventListener('click', () => {
+    if (shots.length === 0 || lastFinalTime === 0) {
+      showToast('No shots recorded to score');
+      return;
+    }
     editingRunDate = null;
     scoreCounts = { A: 0, C: 0, D: 0, M: 0, NS: 0, PE: 0 };
     els.scoreTime.textContent = fmt(lastFinalTime || 0);
     els.scoreSaveBtn.textContent = 'Save to history';
+    updatePfTabs();
     buildScoreGrid();
     updateScoreReadout();
     els.scoreModal.classList.remove('hidden');
