@@ -121,7 +121,7 @@
   updatePfTabs();
 
   els.pfTabs.addEventListener('click', (e) => {
-    const btn = e.target.closest('.mode-tab');
+    const btn = e.target.closest('button');
     if (!btn) return;
     powerFactor = btn.dataset.pf;
     settings.powerFactor = powerFactor;
