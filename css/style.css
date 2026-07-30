@@ -146,6 +146,17 @@ html, body {
   color: #8A8377;
   letter-spacing: 0.04em;
 }
+.assessment-info {
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: rgba(255,157,31,0.1);
+  border: 1px solid rgba(255,157,31,0.3);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #FF9D1F;
+  letter-spacing: 0.06em;
+}
 #maxTimeLabel { color: #C9C2B4; }
 
 /* ---------- Shot log ---------- */

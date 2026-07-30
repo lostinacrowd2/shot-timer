@@ -63,6 +63,9 @@
     detailCloseBtn: $('detailCloseBtn'),
     detailTitle: $('detailTitle'),
     pfTabs: $('pfTabs'),
+    assessmentInfo: $('assessmentInfo'),
+    assessmentDistance: $('assessmentDistance'),
+    assessmentProgress: $('assessmentProgress'),
   };
 
   // ---------- Persistent settings ----------
@@ -107,6 +110,14 @@
   let armTimeoutId = null;
   let endTimeoutId = null;
   let editingRunDate = null; // null if new run, ISO string if editing history
+
+  // Assessment state
+  let assessmentState = {
+    active: false,
+    step: 0, // 0: 7yds, 1: 15yds, 2: 25yds
+    runs: [] // {distance, time, hits, hf}
+  };
+  const ASSESSMENT_DISTANCES = ['7 YARDS', '15 YARDS', '25 YARDS'];
 
   const detector = new AudioDetector();
   detector.sensitivity = settings.sensitivity / 100;
@@ -223,6 +234,19 @@
     } else {
       els.subRow.classList.add('hidden');
     }
+
+    if (mode === 'ASSESSMENT') {
+      els.assessmentInfo.classList.remove('hidden');
+      updateAssessmentUI();
+    } else {
+      els.assessmentInfo.classList.add('hidden');
+      assessmentState.active = false;
+    }
+  }
+
+  function updateAssessmentUI() {
+    els.assessmentDistance.textContent = ASSESSMENT_DISTANCES[assessmentState.step];
+    els.assessmentProgress.textContent = `SET ${assessmentState.step + 1}/3`;
   }
 
   // ---------- Live timer display loop ----------
@@ -255,6 +279,11 @@
 
     phase = 'ARMED';
     setStatePill('WAIT…', 'armed');
+
+    if (mode === 'ASSESSMENT') {
+      assessmentState.active = true;
+    }
+
     els.bigTime.textContent = '0.00';
     els.startBtn.textContent = 'CANCEL';
     els.startBtn.classList.add('running');
@@ -356,6 +385,13 @@
     shots = [];
     phase = 'IDLE';
     startPerfTime = null;
+
+    if (mode !== 'ASSESSMENT' || !assessmentState.active) {
+       assessmentState.step = 0;
+       assessmentState.runs = [];
+       if (mode === 'ASSESSMENT') updateAssessmentUI();
+    }
+
     renderShotLog();
     setStatePill('IDLE');
     els.startBtn.textContent = 'START';
@@ -526,6 +562,49 @@
         history[idx].hitFactor = hf;
         history[idx].powerFactor = powerFactor;
       }
+    } else if (mode === 'ASSESSMENT') {
+      assessmentState.runs.push({
+        distance: ASSESSMENT_DISTANCES[assessmentState.step],
+        time: lastFinalTime,
+        shots: [...shots],
+        counts: { ...scoreCounts },
+        points,
+        hitFactor: hf
+      });
+
+      if (assessmentState.step < 2) {
+        assessmentState.step++;
+        els.scoreModal.classList.add('hidden');
+        resetRun(true);
+        updateAssessmentUI();
+        showToast(`Set ${assessmentState.step} saved. Prepare for ${ASSESSMENT_DISTANCES[assessmentState.step]}`);
+        return;
+      } else {
+        // Assessment complete
+        const totalHF = assessmentState.runs.reduce((sum, r) => sum + r.hitFactor, 0);
+        const avgHF = totalHF / 3;
+
+        history.unshift({
+          date: new Date().toISOString(),
+          mode: 'ASSESSMENT',
+          time: assessmentState.runs.reduce((sum, r) => sum + r.time, 0),
+          shots: assessmentState.runs.reduce((acc, r) => acc.concat(r.shots), []),
+          counts: assessmentState.runs.reduce((acc, r) => {
+            for (let k in r.counts) acc[k] = (acc[k] || 0) + r.counts[k];
+            return acc;
+          }, {}),
+          points: assessmentState.runs.reduce((sum, r) => sum + r.points, 0),
+          hitFactor: avgHF,
+          powerFactor: powerFactor,
+          isAssessment: true,
+          runs: [...assessmentState.runs]
+        });
+
+        assessmentState.step = 0;
+        assessmentState.runs = [];
+        assessmentState.active = false;
+        showToast('Assessment complete! Avg HF: ' + avgHF.toFixed(3));
+      }
     } else {
       history.unshift({
         date: new Date().toISOString(),
@@ -574,33 +653,43 @@
   function renderRunDetail(run) {
     activeRun = run;
     els.detailTitle.textContent = `${run.mode} - ${new Date(run.date).toLocaleDateString()}`;
-    const firstShot = run.shots.length ? run.shots[0].time : 0;
-    const avgSplit = run.shots.length > 1
-      ? (run.time - firstShot) / (run.shots.length - 1)
-      : 0;
 
-    els.detailStats.innerHTML = `
-      <div class="stat-box"><span class="stat-label">Draw</span><span class="stat-val">${firstShot.toFixed(2)}</span></div>
-      <div class="stat-box"><span class="stat-label">Avg Split</span><span class="stat-val">${avgSplit.toFixed(2)}</span></div>
-      <div class="stat-box"><span class="stat-label">Factor</span><span class="stat-val">${run.hitFactor.toFixed(2)}</span></div>
-    `;
-
-    // Render SVG chart
-    let chartHtml = '<div class="split-chart">';
-    if (run.shots.length > 1) {
-      const splits = run.shots.slice(1).map(s => s.split);
-      const maxSplit = Math.max(...splits, 0.5);
-      splits.forEach(s => {
-        const height = (s / maxSplit) * 100;
-        // transitions in USPSA are typically > 0.3s, splits on one target < 0.25s
-        const isTransition = s > 0.35;
-        chartHtml += `<div class="chart-bar ${isTransition ? 'transition' : ''}" style="height:${height}%" data-val="${s.toFixed(2)}"></div>`;
-      });
+    if (run.isAssessment) {
+      els.detailStats.innerHTML = `
+        <div class="stat-box" style="grid-column: span 3;"><span class="stat-label">Average Hit Factor</span><span class="stat-val">${run.hitFactor.toFixed(3)}</span></div>
+        ${run.runs.map(r => `
+          <div class="stat-box"><span class="stat-label">${r.distance}</span><span class="stat-val">${r.hitFactor.toFixed(2)} HF</span><span class="stat-label">${r.time.toFixed(2)}s</span></div>
+        `).join('')}
+      `;
+      els.detailChart.innerHTML = '<div style="color:#8A8377; width:100%; text-align:center;">Breakdown shown above.</div>';
     } else {
-      chartHtml += '<div style="color:#8A8377; width:100%; text-align:center;">Not enough shots for split chart.</div>';
+      const firstShot = run.shots.length ? run.shots[0].time : 0;
+      const avgSplit = run.shots.length > 1
+        ? (run.time - firstShot) / (run.shots.length - 1)
+        : 0;
+
+      els.detailStats.innerHTML = `
+        <div class="stat-box"><span class="stat-label">Draw</span><span class="stat-val">${firstShot.toFixed(2)}</span></div>
+        <div class="stat-box"><span class="stat-label">Avg Split</span><span class="stat-val">${avgSplit.toFixed(2)}</span></div>
+        <div class="stat-box"><span class="stat-label">Factor</span><span class="stat-val">${run.hitFactor.toFixed(2)}</span></div>
+      `;
+
+      // Render SVG chart
+      let chartHtml = '<div class="split-chart">';
+      if (run.shots.length > 1) {
+        const splits = run.shots.slice(1).map(s => s.split);
+        const maxSplit = Math.max(...splits, 0.5);
+        splits.forEach(s => {
+          const height = (s / maxSplit) * 100;
+          const isTransition = s > 0.35;
+          chartHtml += `<div class="chart-bar ${isTransition ? 'transition' : ''}" style="height:${height}%" data-val="${s.toFixed(2)}"></div>`;
+        });
+      } else {
+        chartHtml += '<div style="color:#8A8377; width:100%; text-align:center;">Not enough shots for split chart.</div>';
+      }
+      chartHtml += '</div>';
+      els.detailChart.innerHTML = chartHtml;
     }
-    chartHtml += '</div>';
-    els.detailChart.innerHTML = chartHtml;
 
     els.detailModal.classList.remove('hidden');
   }
