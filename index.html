@@ -57,16 +57,33 @@
 
   <!-- Header (Moved to bottom) -->
   <footer class="topbar">
-    <span class="eyebrow">RANGE TIMER</span>
-    <div class="mode-tabs" id="modeTabs">
-      <button class="mode-tab active" data-mode="COMSTOCK">COMSTOCK</button>
-      <button class="mode-tab" data-mode="VIRGINIA">VIRGINIA</button>
-      <button class="mode-tab" data-mode="PAR">PAR</button>
-      <button class="mode-tab" data-mode="ASSESSMENT">ASSESSMENT</button>
+    <div class="topbar-row">
+      <span class="eyebrow">RANGE TIMER</span>
+      <div class="mode-tabs" id="modeTabs">
+        <button class="mode-tab active" data-mode="COMSTOCK">COMSTOCK</button>
+        <button class="mode-tab" data-mode="VIRGINIA">VIRGINIA</button>
+        <button class="mode-tab" data-mode="PAR">PAR</button>
+        <button class="mode-tab" data-mode="ASSESSMENT">ASSESSMENT</button>
+        <button class="mode-tab" data-mode="STEEL">STEEL</button>
+      </div>
+      <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
+      <button class="icon-btn" id="historyBtn" aria-label="History">📋</button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
     </div>
-    <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
-    <button class="icon-btn" id="historyBtn" aria-label="History">📋</button>
-    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+
+    <div class="steel-stage-wrap hidden" id="steelStageWrap">
+      <select id="steelStage">
+        <option value="Five To Go">Five To Go</option>
+        <option value="Showdown">Showdown</option>
+        <option value="Smoke & Hope">Smoke & Hope</option>
+        <option value="Outer Limits">Outer Limits</option>
+        <option value="Accelerator">Accelerator</option>
+        <option value="Pendulum">Pendulum</option>
+        <option value="Speed Option">Speed Option</option>
+        <option value="Roundabout">Roundabout</option>
+        <option value="Custom (5 Hits)">Custom (5 Hits)</option>
+      </select>
+    </div>
   </footer>
 
 </div>
@@ -155,6 +172,17 @@
       <div class="mode-tabs" id="pfTabs">
         <button class="mode-tab active" data-pf="minor">MINOR</button>
         <button class="mode-tab" data-pf="major">MAJOR</button>
+      </div>
+    </div>
+
+    <div class="field-row hidden" id="steelScoringWrap">
+      <label>Misses (+3s each)</label>
+      <div class="score-cell" style="grid-column: span 3;">
+        <div class="stepper">
+          <button id="missMinus">−</button>
+          <span class="count" id="missCount">0</span>
+          <button id="missPlus">+</button>
+        </div>
       </div>
     </div>
 

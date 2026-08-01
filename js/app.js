@@ -66,6 +66,12 @@
     assessmentInfo: $('assessmentInfo'),
     assessmentDistance: $('assessmentDistance'),
     assessmentProgress: $('assessmentProgress'),
+    steelStageWrap: $('steelStageWrap'),
+    steelStage: $('steelStage'),
+    steelScoringWrap: $('steelScoringWrap'),
+    missCount: $('missCount'),
+    missMinus: $('missMinus'),
+    missPlus: $('missPlus'),
   };
 
   // ---------- Persistent settings ----------
@@ -212,7 +218,7 @@
     shots.forEach((s, i) => {
       const row = document.createElement('div');
       row.className = 'shot-row';
-      row.innerHTML = `<span>${i + 1}</span><span>${fmt(s.time)}</span><span>${fmt(s.split)}</span>`;
+      row.innerHTML = `<span>${i + 1}</span><span>${fmt(s.time)}</span><span>${fmt(s.split)}</span><button class="shot-del" data-idx="${i}">×</button>`;
       els.shotLog.appendChild(row);
     });
     els.shotLog.scrollTop = els.shotLog.scrollHeight;
@@ -221,6 +227,33 @@
       els.splitValue.textContent = fmt(shots[shots.length - 1].split);
     }
   }
+
+  function deleteShot(idx) {
+    if (phase === 'ARMED' || phase === 'LIVE') return;
+    shots.splice(idx, 1);
+    shots.forEach((s, i) => {
+      const last = i === 0 ? 0 : shots[i - 1].time;
+      s.split = s.time - last;
+    });
+    renderShotLog();
+    if (shots.length > 0) {
+      const lastTime = shots[shots.length - 1].time;
+      els.bigTime.textContent = fmt(lastTime);
+      lastFinalTime = lastTime;
+    } else {
+      els.bigTime.textContent = '0.00';
+      lastFinalTime = 0;
+      els.splitValue.textContent = '0.00';
+    }
+  }
+
+  els.shotLog.addEventListener('click', (e) => {
+    const btn = e.target.closest('.shot-del');
+    if (btn) {
+      const idx = parseInt(btn.dataset.idx, 10);
+      deleteShot(idx);
+    }
+  });
 
   function updateSubRow() {
     if (mode === 'VIRGINIA') {
@@ -241,6 +274,12 @@
     } else {
       els.assessmentInfo.classList.add('hidden');
       assessmentState.active = false;
+    }
+
+    if (mode === 'STEEL') {
+      els.steelStageWrap.classList.remove('hidden');
+    } else {
+      els.steelStageWrap.classList.add('hidden');
     }
   }
 
@@ -501,8 +540,19 @@
 
   // ---------- Scoring modal ----------
   let scoreCounts = { A: 0, C: 0, D: 0, M: 0, NS: 0, PE: 0 };
+  let steelMisses = 0;
 
   function buildScoreGrid() {
+    if (mode === 'STEEL') {
+      els.scoreGrid.classList.add('hidden');
+      els.pfTabs.parentElement.classList.add('hidden');
+      els.steelScoringWrap.classList.remove('hidden');
+      return;
+    }
+    els.scoreGrid.classList.remove('hidden');
+    els.pfTabs.parentElement.classList.remove('hidden');
+    els.steelScoringWrap.classList.add('hidden');
+
     els.scoreGrid.innerHTML = '';
     USPSA.SCORE_CATEGORIES.forEach(cat => {
       const cell = document.createElement('div');
@@ -528,6 +578,16 @@
   }
 
   function updateScoreReadout() {
+    if (mode === 'STEEL') {
+      const rawTime = lastFinalTime || 0;
+      const penalty = steelMisses * 3;
+      const total = Math.min(30, rawTime + penalty);
+      els.scorePoints.textContent = '—';
+      els.scoreHF.textContent = total.toFixed(2) + 's';
+      els.scoreHF.previousElementSibling.textContent = 'Total Time:';
+      return;
+    }
+    els.scoreHF.previousElementSibling.textContent = 'Hit Factor:';
     const points = USPSA.calcPoints(scoreCounts, powerFactor);
     const hf = USPSA.calcHitFactor(points, lastFinalTime);
     els.scorePoints.textContent = points;
@@ -535,18 +595,33 @@
   }
 
   els.hitFactorBtn.addEventListener('click', () => {
-    if (shots.length === 0 || lastFinalTime === 0) {
-      showToast('No shots recorded to score');
-      return;
+    if (shots.length === 0 && mode !== 'STEEL') {
+       showToast('No shots recorded to score');
+       return;
     }
     editingRunDate = null;
     scoreCounts = { A: 0, C: 0, D: 0, M: 0, NS: 0, PE: 0 };
+    // Suggest misses based on 5 targets
+    steelMisses = Math.max(0, 5 - shots.length);
+    els.missCount.textContent = steelMisses;
+
     els.scoreTime.textContent = fmt(lastFinalTime || 0);
     els.scoreSaveBtn.textContent = 'Save to history';
     updatePfTabs();
     buildScoreGrid();
     updateScoreReadout();
     els.scoreModal.classList.remove('hidden');
+  });
+
+  els.missMinus.addEventListener('click', () => {
+    steelMisses = Math.max(0, steelMisses - 1);
+    els.missCount.textContent = steelMisses;
+    updateScoreReadout();
+  });
+  els.missPlus.addEventListener('click', () => {
+    steelMisses = Math.min(5, steelMisses + 1);
+    els.missCount.textContent = steelMisses;
+    updateScoreReadout();
   });
   els.scoreCloseBtn.addEventListener('click', () => els.scoreModal.classList.add('hidden'));
   els.scoreSaveBtn.addEventListener('click', () => {
@@ -557,11 +632,28 @@
     if (editingRunDate) {
       const idx = history.findIndex(r => r.date === editingRunDate);
       if (idx !== -1) {
-        history[idx].counts = { ...scoreCounts };
-        history[idx].points = points;
-        history[idx].hitFactor = hf;
-        history[idx].powerFactor = powerFactor;
+        if (history[idx].isSteel) {
+          history[idx].misses = steelMisses;
+          history[idx].time = Math.min(30, history[idx].rawTime + (steelMisses * 3));
+        } else {
+          history[idx].counts = { ...scoreCounts };
+          history[idx].points = points;
+          history[idx].hitFactor = hf;
+          history[idx].powerFactor = powerFactor;
+        }
       }
+    } else if (mode === 'STEEL') {
+      const finalSteelTime = Math.min(30, lastFinalTime + (steelMisses * 3));
+      history.unshift({
+        date: new Date().toISOString(),
+        mode: 'STEEL',
+        stage: els.steelStage.value,
+        time: finalSteelTime,
+        rawTime: lastFinalTime,
+        shots: [...shots],
+        misses: steelMisses,
+        isSteel: true
+      });
     } else if (mode === 'ASSESSMENT') {
       assessmentState.runs.push({
         distance: ASSESSMENT_DISTANCES[assessmentState.step],
@@ -634,14 +726,18 @@
     history.forEach((run, idx) => {
       const item = document.createElement('div');
       item.className = 'history-item';
+      const modeText = run.isSteel ? `STEEL: ${run.stage}` : run.mode;
+      const scoreText = run.isSteel ? `${run.time.toFixed(2)}s` : `${run.hitFactor.toFixed(4)} HF`;
+      const subScoreText = run.isSteel ? `${run.misses} MISSES` : `${run.time.toFixed(2)}s`;
+
       item.innerHTML = `
         <div class="history-meta">
           <span class="history-date">${new Date(run.date).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
-          <span class="history-mode">${run.mode} · ${run.shots.length} SHOTS (${run.powerFactor || 'minor'})</span>
+          <span class="history-mode">${modeText} · ${run.shots.length} SHOTS</span>
         </div>
         <div class="history-score">
-          <span class="history-hf">${run.hitFactor.toFixed(4)} HF</span>
-          <div class="history-time">${run.time.toFixed(2)}s</div>
+          <span class="history-hf">${scoreText}</span>
+          <div class="history-time">${subScoreText}</div>
         </div>
       `;
       item.addEventListener('click', () => renderRunDetail(run));
@@ -652,9 +748,17 @@
   let activeRun = null;
   function renderRunDetail(run) {
     activeRun = run;
-    els.detailTitle.textContent = `${run.mode} - ${new Date(run.date).toLocaleDateString()}`;
+    const titleText = run.isSteel ? `STEEL: ${run.stage}` : run.mode;
+    els.detailTitle.textContent = `${titleText} - ${new Date(run.date).toLocaleDateString()}`;
 
-    if (run.isAssessment) {
+    if (run.isSteel) {
+      els.detailStats.innerHTML = `
+        <div class="stat-box"><span class="stat-label">Total Time</span><span class="stat-val">${run.time.toFixed(2)}s</span></div>
+        <div class="stat-box"><span class="stat-label">Raw Time</span><span class="stat-val">${run.rawTime.toFixed(2)}s</span></div>
+        <div class="stat-box"><span class="stat-label">Misses</span><span class="stat-val">${run.misses}</span></div>
+      `;
+      els.detailChart.innerHTML = '<div style="color:#8A8377; width:100%; text-align:center;">Score is total time.</div>';
+    } else if (run.isAssessment) {
       els.detailStats.innerHTML = `
         <div class="stat-box" style="grid-column: span 3;"><span class="stat-label">Average Hit Factor</span><span class="stat-val">${run.hitFactor.toFixed(3)}</span></div>
         ${run.runs.map(r => `
@@ -710,12 +814,25 @@
   function editActiveRun() {
     if (!activeRun) return;
     editingRunDate = activeRun.date;
+    els.scoreSaveBtn.textContent = 'Update entry';
+
+    if (activeRun.isSteel) {
+      mode = 'STEEL';
+      steelMisses = activeRun.misses;
+      lastFinalTime = activeRun.rawTime;
+      els.missCount.textContent = steelMisses;
+      els.scoreTime.textContent = fmt(lastFinalTime);
+      buildScoreGrid();
+      updateScoreReadout();
+      els.scoreModal.classList.remove('hidden');
+      return;
+    }
+
     scoreCounts = { ...activeRun.counts };
     powerFactor = activeRun.powerFactor || 'minor';
     lastFinalTime = activeRun.time;
 
     els.scoreTime.textContent = fmt(lastFinalTime);
-    els.scoreSaveBtn.textContent = 'Update entry';
     updatePfTabs();
     buildScoreGrid();
     // Update stepper counts
@@ -731,9 +848,10 @@
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     if (history.length === 0) return;
 
-    let csv = 'Date,Mode,Time,Shots,Points,Hit Factor,Power Factor,Shot #,Shot Time,Split\n';
+    let csv = 'Date,Mode,Stage/Dist,Time,RawTime,Shots,Points,Hit Factor,Power Factor,Misses,Shot #,Shot Time,Split\n';
     history.forEach(run => {
-      const base = `${run.date},${run.mode},${run.time},${run.shots.length},${run.points},${run.hitFactor},${run.powerFactor || 'minor'}`;
+      const stageInfo = run.isSteel ? run.stage : (run.isAssessment ? 'Multiple' : '—');
+      const base = `${run.date},${run.mode},${stageInfo},${run.time},${run.rawTime || run.time},${run.shots.length},${run.points || 0},${run.hitFactor || 0},${run.powerFactor || '—'},${run.misses || 0}`;
       if (run.shots.length === 0) {
         csv += `${base},0,0,0\n`;
       } else {
