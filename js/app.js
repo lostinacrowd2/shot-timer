@@ -239,35 +239,63 @@
 
   function renderShotLog() {
     els.shotLog.innerHTML = '';
-    shots.forEach((s, i) => {
-      const row = document.createElement('div');
-      row.className = 'shot-row';
-      row.innerHTML = `<span>${i + 1}</span><span>${fmt(s.time)}</span><span>${fmt(s.split)}</span><button class="shot-del" data-idx="${i}">×</button>`;
-      els.shotLog.appendChild(row);
-    });
+
+    // In DRAW mode, we show the history of all draws in the session
+    if (actionMode === 'DRAW') {
+      drawSession.times.forEach((t, i) => {
+        const row = document.createElement('div');
+        row.className = 'shot-row';
+        row.innerHTML = `<span>${i + 1}</span><span>${fmt(t)}</span><span>—</span><button class="shot-del" data-idx="${i}">×</button>`;
+        els.shotLog.appendChild(row);
+      });
+    } else {
+      shots.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'shot-row';
+        row.innerHTML = `<span>${i + 1}</span><span>${fmt(s.time)}</span><span>${fmt(s.split)}</span><button class="shot-del" data-idx="${i}">×</button>`;
+        els.shotLog.appendChild(row);
+      });
+    }
+
     els.shotLog.scrollTop = els.shotLog.scrollHeight;
-    els.shotCount.textContent = '#' + shots.length;
-    if (shots.length) {
-      els.splitValue.textContent = fmt(shots[shots.length - 1].split);
+
+    if (actionMode === 'DRAW') {
+      els.shotCount.textContent = '#' + drawSession.times.length;
+      els.splitValue.textContent = '—';
+    } else {
+      els.shotCount.textContent = '#' + shots.length;
+      if (shots.length) {
+        els.splitValue.textContent = fmt(shots[shots.length - 1].split);
+      }
     }
   }
 
   function deleteShot(idx) {
     if (phase === 'ARMED' || phase === 'LIVE') return;
-    shots.splice(idx, 1);
-    shots.forEach((s, i) => {
-      const last = i === 0 ? 0 : shots[i - 1].time;
-      s.split = s.time - last;
-    });
-    renderShotLog();
-    if (shots.length > 0) {
-      const lastTime = shots[shots.length - 1].time;
-      els.bigTime.textContent = fmt(lastTime);
-      lastFinalTime = lastTime;
+
+    if (actionMode === 'DRAW') {
+      drawSession.times.splice(idx, 1);
+      updateDrawUI();
     } else {
-      els.bigTime.textContent = '0.00';
-      lastFinalTime = 0;
-      els.splitValue.textContent = '0.00';
+      shots.splice(idx, 1);
+      shots.forEach((s, i) => {
+        const last = i === 0 ? 0 : shots[i - 1].time;
+        s.split = s.time - last;
+      });
+    }
+
+    renderShotLog();
+
+    if (actionMode !== 'DRAW') {
+      if (shots.length > 0) {
+        const lastTime = shots[shots.length - 1].time;
+        els.bigTime.textContent = fmt(lastTime);
+        lastFinalTime = lastTime;
+      } else {
+        els.bigTime.textContent = '0.00';
+        lastFinalTime = 0;
+        els.splitValue.textContent = '0.00';
+      }
     }
   }
 
@@ -354,7 +382,7 @@
 
   // ---------- Core run control ----------
   async function handleStart() {
-    if (phase === 'LIVE' || phase === 'ARMED') {
+    if (phase === 'LIVE' || phase === 'ARMED' || (actionMode === 'DRAW' && drawSession.active)) {
       finishRun('manual-stop');
       return;
     }
@@ -449,6 +477,7 @@
     setStatePill('READY', 'stopped');
     drawSession.times.push(time);
     updateDrawUI();
+    renderShotLog(); // Show the new draw in the log immediately
 
     let countdown = parseFloat(els.drawRestartDelay.value) || 4.0;
     const tick = () => {
@@ -507,6 +536,7 @@
 
   function saveDrawSession() {
     if (drawSession.times.length === 0) {
+      drawSession.active = false;
       resetRun(true);
       return;
     }
@@ -527,6 +557,7 @@
     });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
     showToast(`Session saved! Avg: ${avg.toFixed(2)}s`);
+    drawSession.active = false; // Set to false before reset
     resetRun(true);
   }
 
