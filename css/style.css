@@ -49,31 +49,38 @@ html, body {
   gap: 4px;
   width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 .eyebrow {
-  font-size: 9px;
-  letter-spacing: 0.1em;
+  font-size: 8px;
+  letter-spacing: 0.05em;
   color: #8A8377;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .mode-selectors {
   display: flex;
   gap: 4px;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 .mode-selectors::-webkit-scrollbar { display: none; }
 .btn-mode {
   background: #17140F;
   border: 1px solid #2A2620;
   color: #EDE7DC;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 8px 10px;
+  padding: 6px 4px;
   border-radius: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  flex-shrink: 0;
+  text-align: center;
 }
 .btn-mode:active { background: #2A2620; }
 
@@ -123,8 +130,9 @@ html, body {
   background: none;
   border: none;
   color: #8A8377;
-  font-size: 20px;
-  padding: 4px 6px;
+  font-size: 18px;
+  padding: 4px;
+  flex-shrink: 0;
 }
 
 /* ---------- Status strip: waveform + state pill ---------- */
@@ -271,18 +279,23 @@ html, body {
 .controls {
   display: grid;
   grid-template-columns: 1fr 1.6fr 1fr;
-  gap: 10px;
-  padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+  gap: 8px;
+  padding: calc(12px + env(safe-area-inset-top)) 10px 10px;
   flex-shrink: 0;
   border-bottom: 1px solid #2A2620;
+  width: 100%;
 }
 .btn {
   border: none;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 16px 8px;
+  letter-spacing: 0.02em;
+  padding: 14px 4px;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .btn-primary { background: #FF9D1F; color: #0D0C0B; }
 #startBtn { font-size: 20px; padding: 20px 8px; }
