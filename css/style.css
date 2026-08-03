@@ -31,7 +31,8 @@ html, body {
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  overflow-x: hidden;
+  overflow: hidden; /* Changed from overflow-x: hidden to fully contain everything */
+  position: relative;
 }
 
 /* ---------- Topbar (Now at bottom) ---------- */
@@ -46,22 +47,20 @@ html, body {
 .topbar-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
 }
 .eyebrow {
-  font-size: 8px;
-  letter-spacing: 0.05em;
-  color: #8A8377;
-  font-weight: 700;
-  white-space: nowrap;
-  flex-shrink: 0;
+  display: none; /* Hide 'RANGE TIMER' text on mobile to save horizontal space */
+}
+@media (min-width: 400px) {
+  .eyebrow { display: block; font-size: 8px; }
 }
 .mode-selectors {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -71,10 +70,10 @@ html, body {
   background: #17140F;
   border: 1px solid #2A2620;
   color: #EDE7DC;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
-  padding: 6px 4px;
-  border-radius: 8px;
+  padding: 6px 2px;
+  border-radius: 6px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -108,14 +107,11 @@ html, body {
 .picker-item:active { opacity: 0.8; }
 
 .steel-stage-wrap {
-  position: absolute;
-  bottom: -34px;
-  left: 0;
   width: 100%;
   background: #17140F;
-  padding: 4px 14px;
-  border-bottom: 1px solid #2A2620;
-  z-index: 5;
+  padding: 4px 0;
+  border-top: 1px solid #2A2620;
+  margin-top: 4px;
 }
 .steel-stage-wrap select {
   width: 100%;
