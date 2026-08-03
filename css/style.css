@@ -28,6 +28,7 @@ html, body {
   height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
+  overflow-x: hidden;
 }
 
 /* ---------- Topbar (Now at bottom) ---------- */
@@ -177,7 +178,7 @@ html, body {
   color: #8A8377;
   letter-spacing: 0.04em;
 }
-.assessment-info {
+.assessment-info, .draw-info {
   margin-top: 8px;
   padding: 4px 12px;
   background: rgba(255,157,31,0.1);
@@ -187,7 +188,16 @@ html, body {
   font-weight: 800;
   color: #FF9D1F;
   letter-spacing: 0.06em;
+  text-align: center;
 }
+.draw-stats-mini {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: #8A8377;
+  margin-top: 4px;
+}
+.draw-stats-mini b { color: #EDE7DC; }
 #maxTimeLabel { color: #C9C2B4; }
 
 /* ---------- Shot log ---------- */
