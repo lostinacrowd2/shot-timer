@@ -4,9 +4,8 @@
         [{
             \"relation\": [\"delegate_permission/common.handle_all_urls\"],
             \"target\": {
-                \"namespace\": \"android_app\",
-                \"package_name\": \"com.lostinacrowd.shottimer\",
-                \"sha256_cert_fingerprints\": [\"E3:0B:09:7D:9F:21:7F:AF:AB:1C:92:E7:C7:84:6D:36:A0:72:B1:E8:62:51:3F:29:C8:43:4F:5D:C4:BF:0E:F9\"]
+                \"namespace\": \"web\",
+                \"site\": \"https://lostinacrowd2.github.io/\"
             }
         }]
     </string>
