@@ -651,6 +651,7 @@
   }
 
   async function runCalibration() {
+    els.settingsModal.classList.add('hidden'); // Auto-close settings menu
     els.calModal.classList.remove('hidden');
     els.calAcceptBtn.classList.add('hidden');
     els.calRetestBtn.classList.add('hidden');
