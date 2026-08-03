@@ -3,7 +3,6 @@
 
   // ---------- Elements ----------
   const els = {
-    modeTabs: $('modeTabs'),
     settingsBtn: $('settingsBtn'),
     reloadBtn: $('reloadBtn'),
     toast: $('toast'),
@@ -18,6 +17,13 @@
     hitFactorBtn: $('hitFactorBtn'),
     startBtn: $('startBtn'),
     resetBtn: $('resetBtn'),
+
+    actionModeBtn: $('actionModeBtn'),
+    timerModeBtn: $('timerModeBtn'),
+    actionModal: $('actionModal'),
+    timerModal: $('timerModal'),
+    actionCloseBtn: $('actionCloseBtn'),
+    timerCloseBtn: $('timerCloseBtn'),
 
     calModal: $('calModal'),
     calInstructions: $('calInstructions'),
@@ -102,6 +108,8 @@
     recoilEnabled: false,
     powerFactor: 'minor',
     drawRestartDelay: 4.0,
+    actionMode: 'STANDARD',
+    timerMode: 'COMSTOCK',
     calibratedThreshold: null
   }, loadSettings());
 
@@ -116,7 +124,8 @@
   els.drawRestartDelay.value = settings.drawRestartDelay;
 
   // ---------- State ----------
-  let mode = 'COMSTOCK'; // COMSTOCK | VIRGINIA | PAR
+  let actionMode = settings.actionMode;
+  let timerMode = settings.timerMode;
   let phase = 'IDLE';    // IDLE | ARMED | LIVE | STOPPED
   let startPerfTime = null; // performance.now() at the START beep
   let shots = [];        // {time, split}
@@ -271,19 +280,23 @@
   });
 
   function updateSubRow() {
-    if (mode === 'VIRGINIA') {
-      els.subRow.classList.remove('hidden');
-      els.maxTimeLabel.textContent = Number(els.maxTime.value).toFixed(1) + 's';
-      els.subRow.firstChild.textContent = 'MAX TIME: ';
-    } else if (mode === 'PAR') {
-      els.subRow.classList.remove('hidden');
-      els.maxTimeLabel.textContent = Number(els.parTime.value).toFixed(1) + 's';
-      els.subRow.firstChild.textContent = 'PAR: ';
+    if (actionMode === 'STANDARD') {
+      if (timerMode === 'VIRGINIA') {
+        els.subRow.classList.remove('hidden');
+        els.maxTimeLabel.textContent = Number(els.maxTime.value).toFixed(1) + 's';
+        els.subRow.firstChild.textContent = 'MAX TIME: ';
+      } else if (timerMode === 'PAR') {
+        els.subRow.classList.remove('hidden');
+        els.maxTimeLabel.textContent = Number(els.parTime.value).toFixed(1) + 's';
+        els.subRow.firstChild.textContent = 'PAR: ';
+      } else {
+        els.subRow.classList.add('hidden');
+      }
     } else {
       els.subRow.classList.add('hidden');
     }
 
-    if (mode === 'ASSESSMENT') {
+    if (actionMode === 'ASSESSMENT') {
       els.assessmentInfo.classList.remove('hidden');
       updateAssessmentUI();
     } else {
@@ -291,13 +304,13 @@
       assessmentState.active = false;
     }
 
-    if (mode === 'STEEL') {
+    if (actionMode === 'STEEL') {
       els.steelStageWrap.classList.remove('hidden');
     } else {
       els.steelStageWrap.classList.add('hidden');
     }
 
-    if (mode === 'DRAW') {
+    if (actionMode === 'DRAW') {
       els.drawInfo.classList.remove('hidden');
       updateDrawUI();
     } else {
@@ -356,11 +369,11 @@
     phase = 'ARMED';
     setStatePill('WAIT…', 'armed');
 
-    if (mode === 'ASSESSMENT') {
+    if (actionMode === 'ASSESSMENT') {
       assessmentState.active = true;
     }
 
-    if (mode === 'DRAW') {
+    if (actionMode === 'DRAW') {
       drawSession.active = true;
     }
 
@@ -408,22 +421,24 @@
       shots.push({ time: elapsed, split: elapsed - last });
       renderShotLog();
 
-      if (mode === 'DRAW') {
+    if (actionMode === 'DRAW') {
         finishDrawRun(elapsed);
       }
     };
 
     startDisplayLoop();
 
-    if (mode === 'VIRGINIA') {
-      const maxT = Math.max(0.5, parseFloat(els.maxTime.value) || 10);
-      endTimeoutId = setTimeout(() => finishRun('max-time'), maxT * 1000);
-    } else if (mode === 'PAR') {
-      const parT = Math.max(0.2, parseFloat(els.parTime.value) || 6);
-      endTimeoutId = setTimeout(() => {
-        beep({ freq: 1200, durationMs: 160 });
-        finishRun('par-time');
-      }, parT * 1000);
+    if (actionMode === 'STANDARD') {
+      if (timerMode === 'VIRGINIA') {
+        const maxT = Math.max(0.5, parseFloat(els.maxTime.value) || 10);
+        endTimeoutId = setTimeout(() => finishRun('max-time'), maxT * 1000);
+      } else if (timerMode === 'PAR') {
+        const parT = Math.max(0.2, parseFloat(els.parTime.value) || 6);
+        endTimeoutId = setTimeout(() => {
+          beep({ freq: 1200, durationMs: 160 });
+          finishRun('par-time');
+        }, parT * 1000);
+      }
     }
   }
 
@@ -437,7 +452,7 @@
 
     let countdown = parseFloat(els.drawRestartDelay.value) || 4.0;
     const tick = () => {
-      if (mode !== 'DRAW' || phase === 'IDLE' || !drawSession.active) return;
+      if (actionMode !== 'DRAW' || phase === 'IDLE' || !drawSession.active) return;
       if (countdown <= 0) {
         els.drawStatus.textContent = 'DRAW SESSION';
         resetRun(false);
@@ -485,7 +500,7 @@
     els.startBtn.classList.remove('running');
     lastFinalTime = finalTime;
 
-    if (mode === 'DRAW' && reason === 'manual-stop') {
+    if (actionMode === 'DRAW' && reason === 'manual-stop') {
       saveDrawSession();
     }
   }
@@ -527,15 +542,15 @@
     phase = 'IDLE';
     startPerfTime = null;
 
-    if (mode !== 'ASSESSMENT' || !assessmentState.active) {
+    if (actionMode !== 'ASSESSMENT' || !assessmentState.active) {
        assessmentState.step = 0;
        assessmentState.runs = [];
-       if (mode === 'ASSESSMENT') updateAssessmentUI();
+       if (actionMode === 'ASSESSMENT') updateAssessmentUI();
     }
 
-    if (mode !== 'DRAW' || !drawSession.active) {
+    if (actionMode !== 'DRAW' || !drawSession.active) {
       drawSession.times = [];
-      if (mode === 'DRAW') updateDrawUI();
+      if (actionMode === 'DRAW') updateDrawUI();
     }
 
     renderShotLog();
@@ -551,16 +566,49 @@
   els.startBtn.addEventListener('click', handleStart);
   els.resetBtn.addEventListener('click', () => resetRun(true));
 
-  // ---------- Mode tabs ----------
-  els.modeTabs.addEventListener('click', (e) => {
-    const btn = e.target.closest('.mode-tab');
-    if (!btn) return;
-    [...els.modeTabs.children].forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    mode = btn.dataset.mode;
+  // ---------- Mode selection ----------
+  function updateModeButtons() {
+    els.actionModeBtn.textContent = 'ACTION: ' + actionMode;
+    els.timerModeBtn.textContent = 'TIMER: ' + timerMode;
+    els.timerModeBtn.classList.toggle('hidden', actionMode !== 'STANDARD');
+
+    // Update active state in pickers
+    document.querySelectorAll('#actionModal .picker-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.action === actionMode);
+    });
+    document.querySelectorAll('#timerModal .picker-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.timer === timerMode);
+    });
+
     updateSubRow();
+  }
+
+  els.actionModeBtn.addEventListener('click', () => els.actionModal.classList.remove('hidden'));
+  els.timerModeBtn.addEventListener('click', () => els.timerModal.classList.remove('hidden'));
+  els.actionCloseBtn.addEventListener('click', () => els.actionModal.classList.add('hidden'));
+  els.timerCloseBtn.addEventListener('click', () => els.timerModal.classList.add('hidden'));
+
+  document.querySelectorAll('#actionModal .picker-item').forEach(b => {
+    b.addEventListener('click', () => {
+      actionMode = b.dataset.action;
+      settings.actionMode = actionMode;
+      saveSettings(settings);
+      els.actionModal.classList.add('hidden');
+      updateModeButtons();
+    });
   });
-  updateSubRow();
+
+  document.querySelectorAll('#timerModal .picker-item').forEach(b => {
+    b.addEventListener('click', () => {
+      timerMode = b.dataset.timer;
+      settings.timerMode = timerMode;
+      saveSettings(settings);
+      els.timerModal.classList.add('hidden');
+      updateModeButtons();
+    });
+  });
+
+  updateModeButtons();
 
   // ---------- Settings modal ----------
   els.settingsBtn.addEventListener('click', () => els.settingsModal.classList.remove('hidden'));
@@ -750,7 +798,7 @@
           history[idx].powerFactor = powerFactor;
         }
       }
-    } else if (mode === 'STEEL') {
+    } else if (actionMode === 'STEEL') {
       const finalSteelTime = Math.min(30, lastFinalTime + (steelMisses * 3));
       history.unshift({
         date: new Date().toISOString(),
@@ -762,7 +810,7 @@
         misses: steelMisses,
         isSteel: true
       });
-    } else if (mode === 'ASSESSMENT') {
+    } else if (actionMode === 'ASSESSMENT') {
       assessmentState.runs.push({
         distance: ASSESSMENT_DISTANCES[assessmentState.step],
         time: lastFinalTime,
@@ -805,10 +853,14 @@
         assessmentState.active = false;
         showToast('Assessment complete! Avg HF: ' + avgHF.toFixed(3));
       }
+    } else if (actionMode === 'DRAW') {
+        // Handled in saveDrawSession
+        return;
     } else {
       history.unshift({
         date: new Date().toISOString(),
-        mode, time: lastFinalTime, shots: [...shots], // clone shots
+        mode: (actionMode === 'STANDARD' ? `STANDARD (${timerMode})` : actionMode),
+        time: lastFinalTime, shots: [...shots], // clone shots
         counts: { ...scoreCounts }, points, hitFactor: hf,
         powerFactor: powerFactor
       });

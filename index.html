@@ -65,11 +65,9 @@
   <footer class="topbar">
     <div class="topbar-row">
       <span class="eyebrow">RANGE TIMER</span>
-      <div class="mode-tabs" id="modeTabs">
-        <button class="mode-tab active" data-mode="COMSTOCK">COMSTOCK</button>
-        <button class="mode-tab" data-mode="ASSESSMENT">ASSESSMENT</button>
-        <button class="mode-tab" data-mode="STEEL">STEEL</button>
-        <button class="mode-tab" data-mode="DRAW">DRAW</button>
+      <div class="mode-selectors">
+        <button class="btn btn-mode" id="actionModeBtn">ACTION: STANDARD</button>
+        <button class="btn btn-mode" id="timerModeBtn">TIMER: COMSTOCK</button>
       </div>
       <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
       <button class="icon-btn" id="historyBtn" aria-label="History">📋</button>
@@ -265,6 +263,37 @@
       <button class="btn btn-ghost" id="detailDeleteBtn" style="color: #E4432B;">Delete</button>
       <button class="btn btn-ghost" id="detailEditBtn">Edit Hits</button>
       <button class="btn btn-ghost" id="detailCloseBtn">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action Picker Modal -->
+<div class="modal-backdrop hidden" id="actionModal">
+  <div class="modal">
+    <h2>Select Action Mode</h2>
+    <div class="picker-list">
+      <button class="picker-item active" data-action="STANDARD">Standard Timing</button>
+      <button class="picker-item" data-action="STEEL">Steel Challenge</button>
+      <button class="picker-item" data-action="ASSESSMENT">Fundamentals Assessment</button>
+      <button class="picker-item" data-action="DRAW">Draw Session</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="actionCloseBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timer Picker Modal -->
+<div class="modal-backdrop hidden" id="timerModal">
+  <div class="modal">
+    <h2>Select Timer Mode</h2>
+    <div class="picker-list">
+      <button class="picker-item active" data-timer="COMSTOCK">Comstock (Continuous)</button>
+      <button class="picker-item" data-timer="VIRGINIA">Virginia (Auto-Stop)</button>
+      <button class="picker-item" data-timer="PAR">Par (Time Limit Beep)</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="timerCloseBtn">Cancel</button>
     </div>
   </div>
 </div>

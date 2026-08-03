@@ -53,7 +53,7 @@ html, body {
   font-weight: 700;
   white-space: nowrap;
 }
-.mode-tabs {
+.mode-selectors {
   display: flex;
   gap: 4px;
   flex: 1;
@@ -62,23 +62,43 @@ html, body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.mode-tabs::-webkit-scrollbar { display: none; }
-.mode-tab {
-  background: transparent;
+.mode-selectors::-webkit-scrollbar { display: none; }
+.btn-mode {
+  background: #17140F;
+  border: 1px solid #2A2620;
+  color: #EDE7DC;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-mode:active { background: #2A2620; }
+
+.picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+.picker-item {
+  background: #0D0C0B;
   border: 1px solid #2A2620;
   color: #8A8377;
-  font-size: 11px;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 6px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
+  text-align: left;
 }
-.mode-tab.active {
-  color: #0D0C0B;
+.picker-item.active {
   background: #FF9D1F;
+  color: #0D0C0B;
   border-color: #FF9D1F;
 }
+.picker-item:active { opacity: 0.8; }
+
 .steel-stage-wrap {
   position: absolute;
   bottom: -34px;
