@@ -72,6 +72,12 @@
     missCount: $('missCount'),
     missMinus: $('missMinus'),
     missPlus: $('missPlus'),
+    drawInfo: $('drawInfo'),
+    drawStatus: $('drawStatus'),
+    drawLow: $('drawLow'),
+    drawHigh: $('drawHigh'),
+    drawAvg: $('drawAvg'),
+    drawRestartDelay: $('drawRestartDelay'),
   };
 
   // ---------- Persistent settings ----------
@@ -95,6 +101,7 @@
     maxTime: 10,
     recoilEnabled: false,
     powerFactor: 'minor',
+    drawRestartDelay: 4.0,
     calibratedThreshold: null
   }, loadSettings());
 
@@ -106,6 +113,7 @@
   els.parTime.value = settings.parTime;
   els.maxTime.value = settings.maxTime;
   els.recoilEnabled.checked = settings.recoilEnabled;
+  els.drawRestartDelay.value = settings.drawRestartDelay;
 
   // ---------- State ----------
   let mode = 'COMSTOCK'; // COMSTOCK | VIRGINIA | PAR
@@ -116,6 +124,13 @@
   let armTimeoutId = null;
   let endTimeoutId = null;
   let editingRunDate = null; // null if new run, ISO string if editing history
+
+  // Draw Session state
+  let drawSession = {
+    active: false,
+    times: [],
+    restartTimer: null
+  };
 
   // Assessment state
   let assessmentState = {
@@ -281,6 +296,28 @@
     } else {
       els.steelStageWrap.classList.add('hidden');
     }
+
+    if (mode === 'DRAW') {
+      els.drawInfo.classList.remove('hidden');
+      updateDrawUI();
+    } else {
+      els.drawInfo.classList.add('hidden');
+    }
+  }
+
+  function updateDrawUI() {
+    if (drawSession.times.length === 0) {
+      els.drawLow.textContent = '—';
+      els.drawHigh.textContent = '—';
+      els.drawAvg.textContent = '—';
+      return;
+    }
+    const low = Math.min(...drawSession.times);
+    const high = Math.max(...drawSession.times);
+    const avg = drawSession.times.reduce((a, b) => a + b, 0) / drawSession.times.length;
+    els.drawLow.textContent = low.toFixed(2);
+    els.drawHigh.textContent = high.toFixed(2);
+    els.drawAvg.textContent = avg.toFixed(2);
   }
 
   function updateAssessmentUI() {
@@ -321,6 +358,10 @@
 
     if (mode === 'ASSESSMENT') {
       assessmentState.active = true;
+    }
+
+    if (mode === 'DRAW') {
+      drawSession.active = true;
     }
 
     els.bigTime.textContent = '0.00';
@@ -366,6 +407,10 @@
       const last = shots.length ? shots[shots.length - 1].time : 0;
       shots.push({ time: elapsed, split: elapsed - last });
       renderShotLog();
+
+      if (mode === 'DRAW') {
+        finishDrawRun(elapsed);
+      }
     };
 
     startDisplayLoop();
@@ -382,9 +427,34 @@
     }
   }
 
+  function finishDrawRun(time) {
+    detector.armed = false;
+    stopDisplayLoop();
+    phase = 'STOPPED';
+    setStatePill('READY', 'stopped');
+    drawSession.times.push(time);
+    updateDrawUI();
+
+    let countdown = parseFloat(els.drawRestartDelay.value) || 4.0;
+    const tick = () => {
+      if (mode !== 'DRAW' || phase === 'IDLE' || !drawSession.active) return;
+      if (countdown <= 0) {
+        els.drawStatus.textContent = 'DRAW SESSION';
+        resetRun(false);
+        handleStart();
+        return;
+      }
+      els.drawStatus.textContent = `RESTARTING IN ${countdown.toFixed(1)}s`;
+      countdown -= 0.1;
+      drawSession.restartTimer = setTimeout(tick, 100);
+    };
+    tick();
+  }
+
   function finishRun(reason) {
     if (armTimeoutId) clearTimeout(armTimeoutId);
     if (endTimeoutId) clearTimeout(endTimeoutId);
+    if (drawSession.restartTimer) clearTimeout(drawSession.restartTimer);
     window.removeEventListener('devicemotion', onMotion);
     stopDisplayLoop();
     detector.armed = false;
@@ -392,6 +462,8 @@
     if (phase === 'ARMED' && reason === 'manual-stop') {
       // cancelled before the beep
       phase = 'IDLE';
+      drawSession.active = false;
+      els.drawStatus.textContent = 'DRAW SESSION';
       setStatePill('IDLE');
       els.startBtn.textContent = 'START';
       els.startBtn.classList.remove('running');
@@ -412,6 +484,35 @@
     els.startBtn.textContent = 'START';
     els.startBtn.classList.remove('running');
     lastFinalTime = finalTime;
+
+    if (mode === 'DRAW' && reason === 'manual-stop') {
+      saveDrawSession();
+    }
+  }
+
+  function saveDrawSession() {
+    if (drawSession.times.length === 0) {
+      resetRun(true);
+      return;
+    }
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const low = Math.min(...drawSession.times);
+    const high = Math.max(...drawSession.times);
+    const avg = drawSession.times.reduce((a, b) => a + b, 0) / drawSession.times.length;
+
+    history.unshift({
+      date: new Date().toISOString(),
+      mode: 'DRAW',
+      time: avg, // main display uses avg
+      low,
+      high,
+      times: [...drawSession.times],
+      shots: drawSession.times.map(t => ({ time: t, split: 0 })),
+      isDrawSession: true
+    });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
+    showToast(`Session saved! Avg: ${avg.toFixed(2)}s`);
+    resetRun(true);
   }
 
   let lastFinalTime = 0;
@@ -419,6 +520,7 @@
   function resetRun(resetDisplay = true) {
     if (armTimeoutId) clearTimeout(armTimeoutId);
     if (endTimeoutId) clearTimeout(endTimeoutId);
+    if (drawSession.restartTimer) clearTimeout(drawSession.restartTimer);
     window.removeEventListener('devicemotion', onMotion);
     stopDisplayLoop();
     shots = [];
@@ -429,6 +531,11 @@
        assessmentState.step = 0;
        assessmentState.runs = [];
        if (mode === 'ASSESSMENT') updateAssessmentUI();
+    }
+
+    if (mode !== 'DRAW' || !drawSession.active) {
+      drawSession.times = [];
+      if (mode === 'DRAW') updateDrawUI();
     }
 
     renderShotLog();
@@ -464,6 +571,7 @@
     settings.parTime = parseFloat(els.parTime.value);
     settings.maxTime = parseFloat(els.maxTime.value);
     settings.recoilEnabled = els.recoilEnabled.checked;
+    settings.drawRestartDelay = parseFloat(els.drawRestartDelay.value);
     detector.sensitivity = settings.sensitivity / 100;
     saveSettings(settings);
     els.settingsModal.classList.add('hidden');
@@ -758,6 +866,21 @@
         <div class="stat-box"><span class="stat-label">Misses</span><span class="stat-val">${run.misses}</span></div>
       `;
       els.detailChart.innerHTML = '<div style="color:#8A8377; width:100%; text-align:center;">Score is total time.</div>';
+    } else if (run.isDrawSession) {
+      els.detailStats.innerHTML = `
+        <div class="stat-box" style="color:#35D07F;"><span class="stat-label">Fastest</span><span class="stat-val">${run.low.toFixed(2)}s</span></div>
+        <div class="stat-box" style="color:#FF9D1F;"><span class="stat-label">Average</span><span class="stat-val">${run.time.toFixed(2)}s</span></div>
+        <div class="stat-box" style="color:#E4432B;"><span class="stat-label">Slowest</span><span class="stat-val">${run.high.toFixed(2)}s</span></div>
+      `;
+
+      let chartHtml = '<div class="split-chart">';
+      run.times.forEach(t => {
+        const height = (t / run.high) * 100;
+        const colorClass = (t === run.low) ? 'live' : (t === run.high ? 'transition' : '');
+        chartHtml += `<div class="chart-bar ${colorClass}" style="height:${height}%" data-val="${t.toFixed(2)}"></div>`;
+      });
+      chartHtml += '</div>';
+      els.detailChart.innerHTML = chartHtml;
     } else if (run.isAssessment) {
       els.detailStats.innerHTML = `
         <div class="stat-box" style="grid-column: span 3;"><span class="stat-label">Average Hit Factor</span><span class="stat-val">${run.hitFactor.toFixed(3)}</span></div>
