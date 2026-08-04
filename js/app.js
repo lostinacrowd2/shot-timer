@@ -381,8 +381,13 @@
   }
 
   // ---------- Core run control ----------
-  async function handleStart() {
-    if (phase === 'LIVE' || phase === 'ARMED' || (actionMode === 'DRAW' && drawSession.active)) {
+  async function handleStart(e) {
+    const isUserClick = e && e.type === 'click';
+
+    // In Draw mode, if a session is active, the START button acts as a STOP button.
+    // However, if the app itself calls handleStart (isUserClick is false),
+    // we want to continue the session, not stop it.
+    if (phase === 'LIVE' || phase === 'ARMED' || (actionMode === 'DRAW' && drawSession.active && isUserClick)) {
       finishRun('manual-stop');
       return;
     }
