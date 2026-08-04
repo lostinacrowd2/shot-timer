@@ -477,22 +477,37 @@
     setStatePill('READY', 'stopped');
     drawSession.times.push(time);
     updateDrawUI();
-    renderShotLog(); // Show the new draw in the log immediately
+    renderShotLog();
 
-    let countdown = parseFloat(els.drawRestartDelay.value) || 4.0;
-    const tick = () => {
+    // Phase 1: Highlight the shot time in Green for 2 seconds
+    els.bigTime.textContent = fmt(time);
+    els.bigTime.classList.add('success');
+
+    let highlightTime = 2000;
+    drawSession.restartTimer = setTimeout(() => {
       if (actionMode !== 'DRAW' || phase === 'IDLE' || !drawSession.active) return;
-      if (countdown <= 0) {
-        els.drawStatus.textContent = 'DRAW SESSION';
-        resetRun(false);
-        handleStart();
-        return;
-      }
-      els.drawStatus.textContent = `RESTARTING IN ${countdown.toFixed(1)}s`;
-      countdown -= 0.1;
-      drawSession.restartTimer = setTimeout(tick, 100);
-    };
-    tick();
+
+      els.bigTime.classList.remove('success');
+      els.bigTime.classList.add('warning');
+
+      // Phase 2: Countdown in Red
+      let countdown = parseFloat(els.drawRestartDelay.value) || 4.0;
+      const tick = () => {
+        if (actionMode !== 'DRAW' || phase === 'IDLE' || !drawSession.active) return;
+        if (countdown <= 0) {
+          els.bigTime.classList.remove('warning');
+          els.drawStatus.textContent = 'DRAW SESSION';
+          resetRun(false);
+          handleStart();
+          return;
+        }
+        els.bigTime.textContent = countdown.toFixed(1);
+        els.drawStatus.textContent = `RESTARTING IN ${countdown.toFixed(1)}s`;
+        countdown -= 0.1;
+        drawSession.restartTimer = setTimeout(tick, 100);
+      };
+      tick();
+    }, highlightTime);
   }
 
   function finishRun(reason) {
@@ -523,6 +538,7 @@
     const finalTime = shots.length ? shots[shots.length - 1].time : rawElapsed;
 
     els.bigTime.textContent = fmt(finalTime);
+    els.bigTime.classList.remove('success', 'warning');
     phase = 'STOPPED';
     setStatePill('STOPPED', 'stopped');
     els.startBtn.textContent = 'START';
@@ -586,6 +602,7 @@
 
     renderShotLog();
     setStatePill('IDLE');
+    els.bigTime.classList.remove('success', 'warning');
     els.startBtn.textContent = 'START';
     els.startBtn.classList.remove('running');
     if (resetDisplay) {
