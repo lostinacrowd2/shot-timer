@@ -753,7 +753,7 @@
   let steelMisses = 0;
 
   function buildScoreGrid() {
-    if (mode === 'STEEL') {
+    if (actionMode === 'STEEL') {
       els.scoreGrid.classList.add('hidden');
       els.pfTabs.parentElement.classList.add('hidden');
       els.steelScoringWrap.classList.remove('hidden');
@@ -788,7 +788,7 @@
   }
 
   function updateScoreReadout() {
-    if (mode === 'STEEL') {
+    if (actionMode === 'STEEL') {
       const rawTime = lastFinalTime || 0;
       const penalty = steelMisses * 3;
       const total = Math.min(30, rawTime + penalty);
@@ -805,7 +805,7 @@
   }
 
   els.hitFactorBtn.addEventListener('click', () => {
-    if (shots.length === 0 && mode !== 'STEEL') {
+    if (shots.length === 0 && actionMode !== 'STEEL') {
        showToast('No shots recorded to score');
        return;
     }
@@ -1046,7 +1046,7 @@
     els.scoreSaveBtn.textContent = 'Update entry';
 
     if (activeRun.isSteel) {
-      mode = 'STEEL';
+      actionMode = 'STEEL';
       steelMisses = activeRun.misses;
       lastFinalTime = activeRun.rawTime;
       els.missCount.textContent = steelMisses;
