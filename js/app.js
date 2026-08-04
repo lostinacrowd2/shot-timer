@@ -944,14 +944,15 @@
     history.forEach((run, idx) => {
       const item = document.createElement('div');
       item.className = 'history-item';
-      const modeText = run.isSteel ? `STEEL: ${run.stage}` : run.mode;
-      const scoreText = run.isSteel ? `${run.time.toFixed(2)}s` : `${run.hitFactor.toFixed(4)} HF`;
-      const subScoreText = run.isSteel ? `${run.misses} MISSES` : `${run.time.toFixed(2)}s`;
+      const modeText = run.isSteel ? `STEEL: ${run.stage}` : (run.mode || 'UNKNOWN');
+      const scoreValue = run.isSteel ? (run.time || 0) : (run.hitFactor || 0);
+      const scoreText = run.isSteel ? `${scoreValue.toFixed(2)}s` : `${scoreValue.toFixed(4)} HF`;
+      const subScoreText = run.isSteel ? `${run.misses || 0} MISSES` : `${(run.time || 0).toFixed(2)}s`;
 
       item.innerHTML = `
         <div class="history-meta">
-          <span class="history-date">${new Date(run.date).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
-          <span class="history-mode">${modeText} · ${run.shots.length} SHOTS</span>
+          <span class="history-date">${new Date(run.date || Date.now()).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+          <span class="history-mode">${modeText} · ${(run.shots || []).length} SHOTS</span>
         </div>
         <div class="history-score">
           <span class="history-hf">${scoreText}</span>
@@ -965,56 +966,64 @@
 
   let activeRun = null;
   function renderRunDetail(run) {
+    if (!run) return;
     activeRun = run;
-    const titleText = run.isSteel ? `STEEL: ${run.stage}` : run.mode;
-    els.detailTitle.textContent = `${titleText} - ${new Date(run.date).toLocaleDateString()}`;
+    const titleText = run.isSteel ? `STEEL: ${run.stage}` : (run.mode || 'RUN');
+    els.detailTitle.textContent = `${titleText} - ${new Date(run.date || Date.now()).toLocaleDateString()}`;
 
     if (run.isSteel) {
       els.detailStats.innerHTML = `
-        <div class="stat-box"><span class="stat-label">Total Time</span><span class="stat-val">${run.time.toFixed(2)}s</span></div>
-        <div class="stat-box"><span class="stat-label">Raw Time</span><span class="stat-val">${run.rawTime.toFixed(2)}s</span></div>
-        <div class="stat-box"><span class="stat-label">Misses</span><span class="stat-val">${run.misses}</span></div>
+        <div class="stat-box"><span class="stat-label">Total Time</span><span class="stat-val">${(run.time || 0).toFixed(2)}s</span></div>
+        <div class="stat-box"><span class="stat-label">Raw Time</span><span class="stat-val">${(run.rawTime || 0).toFixed(2)}s</span></div>
+        <div class="stat-box"><span class="stat-label">Misses</span><span class="stat-val">${run.misses || 0}</span></div>
       `;
       els.detailChart.innerHTML = '<div style="color:#8A8377; width:100%; text-align:center;">Score is total time.</div>';
     } else if (run.isDrawSession) {
+      const times = run.times || [];
+      const high = run.high || (times.length ? Math.max(...times) : 1);
+      const low = run.low || (times.length ? Math.min(...times) : 0);
+      const time = run.time || (times.length ? times.reduce((a,b)=>a+b,0)/times.length : 0);
+
       els.detailStats.innerHTML = `
-        <div class="stat-box" style="color:#35D07F;"><span class="stat-label">Fastest</span><span class="stat-val">${run.low.toFixed(2)}s</span></div>
-        <div class="stat-box" style="color:#FF9D1F;"><span class="stat-label">Average</span><span class="stat-val">${run.time.toFixed(2)}s</span></div>
-        <div class="stat-box" style="color:#E4432B;"><span class="stat-label">Slowest</span><span class="stat-val">${run.high.toFixed(2)}s</span></div>
+        <div class="stat-box" style="color:#35D07F;"><span class="stat-label">Fastest</span><span class="stat-val">${low.toFixed(2)}s</span></div>
+        <div class="stat-box" style="color:#FF9D1F;"><span class="stat-label">Average</span><span class="stat-val">${time.toFixed(2)}s</span></div>
+        <div class="stat-box" style="color:#E4432B;"><span class="stat-label">Slowest</span><span class="stat-val">${high.toFixed(2)}s</span></div>
       `;
 
       let chartHtml = '<div class="split-chart">';
-      run.times.forEach(t => {
-        const height = (t / run.high) * 100;
-        const colorClass = (t === run.low) ? 'live' : (t === run.high ? 'transition' : '');
+      times.forEach(t => {
+        const height = (t / high) * 100;
+        const colorClass = (t === low) ? 'live' : (t === high ? 'transition' : '');
         chartHtml += `<div class="chart-bar ${colorClass}" style="height:${height}%" data-val="${t.toFixed(2)}"></div>`;
       });
       chartHtml += '</div>';
       els.detailChart.innerHTML = chartHtml;
     } else if (run.isAssessment) {
+      const runs = run.runs || [];
       els.detailStats.innerHTML = `
-        <div class="stat-box" style="grid-column: span 3;"><span class="stat-label">Average Hit Factor</span><span class="stat-val">${run.hitFactor.toFixed(3)}</span></div>
-        ${run.runs.map(r => `
-          <div class="stat-box"><span class="stat-label">${r.distance}</span><span class="stat-val">${r.hitFactor.toFixed(2)} HF</span><span class="stat-label">${r.time.toFixed(2)}s</span></div>
+        <div class="stat-box" style="grid-column: span 3;"><span class="stat-label">Average Hit Factor</span><span class="stat-val">${(run.hitFactor || 0).toFixed(3)}</span></div>
+        ${runs.map(r => `
+          <div class="stat-box"><span class="stat-label">${r.distance || ''}</span><span class="stat-val">${(r.hitFactor || 0).toFixed(2)} HF</span><span class="stat-label">${(r.time || 0).toFixed(2)}s</span></div>
         `).join('')}
       `;
       els.detailChart.innerHTML = '<div style="color:#8A8377; width:100%; text-align:center;">Breakdown shown above.</div>';
     } else {
-      const firstShot = run.shots.length ? run.shots[0].time : 0;
-      const avgSplit = run.shots.length > 1
-        ? (run.time - firstShot) / (run.shots.length - 1)
+      const runShots = run.shots || [];
+      const firstShot = runShots.length ? runShots[0].time : 0;
+      const avgSplit = runShots.length > 1
+        ? ((run.time || 0) - firstShot) / (runShots.length - 1)
         : 0;
 
       els.detailStats.innerHTML = `
         <div class="stat-box"><span class="stat-label">Draw</span><span class="stat-val">${firstShot.toFixed(2)}</span></div>
         <div class="stat-box"><span class="stat-label">Avg Split</span><span class="stat-val">${avgSplit.toFixed(2)}</span></div>
-        <div class="stat-box"><span class="stat-label">Factor</span><span class="stat-val">${run.hitFactor.toFixed(2)}</span></div>
+        <div class="stat-box"><span class="stat-label">Factor</span><span class="stat-val">${(run.hitFactor || 0).toFixed(2)}</span></div>
       `;
 
       // Render SVG chart
       let chartHtml = '<div class="split-chart">';
-      if (run.shots.length > 1) {
-        const splits = run.shots.slice(1).map(s => s.split);
+      if (runShots.length > 1) {
+        const splits = runShots.slice(1).map(s => s.split || 0);
         const maxSplit = Math.max(...splits, 0.5);
         splits.forEach(s => {
           const height = (s / maxSplit) * 100;

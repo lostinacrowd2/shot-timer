@@ -28,10 +28,10 @@ html, body {
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
-  width: 100%;
+  width: 100vw;
   max-width: 480px;
   margin: 0 auto;
-  overflow: hidden; /* Fully contain everything vertically */
+  overflow: hidden; /* Strictly contain everything */
   position: relative;
 }
 
@@ -39,41 +39,40 @@ html, body {
 .topbar {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Reduced gap */
-  padding: 6px 14px calc(6px + env(safe-area-inset-bottom)); /* Reduced padding */
+  gap: 2px; /* Ultra compact gap */
+  padding: 4px 10px calc(4px + env(safe-area-inset-bottom));
   border-top: 1px solid #2A2620;
   flex-shrink: 0;
+  width: 100%;
 }
 .topbar-row {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
   min-width: 0;
-  overflow: hidden;
 }
 .eyebrow {
-  display: none; /* Hide 'RANGE TIMER' text on mobile to save horizontal space */
+  display: none;
 }
 @media (min-width: 400px) {
   .eyebrow { display: block; font-size: 8px; }
 }
 .mode-selectors {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
-.mode-selectors::-webkit-scrollbar { display: none; }
 .btn-mode {
   background: #17140F;
   border: 1px solid #2A2620;
   color: #EDE7DC;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 6px 2px;
-  border-radius: 6px;
+  padding: 6px 4px;
+  border-radius: 8px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
