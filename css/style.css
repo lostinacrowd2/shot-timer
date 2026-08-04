@@ -31,7 +31,7 @@ html, body {
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  overflow: hidden; /* Changed from overflow-x: hidden to fully contain everything */
+  overflow: hidden; /* Fully contain everything vertically */
   position: relative;
 }
 
@@ -39,8 +39,8 @@ html, body {
 .topbar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+  gap: 4px; /* Reduced gap */
+  padding: 6px 14px calc(6px + env(safe-area-inset-bottom)); /* Reduced padding */
   border-top: 1px solid #2A2620;
   flex-shrink: 0;
 }
@@ -170,13 +170,13 @@ html, body {
 
 /* ---------- Big display ---------- */
 .display-wrap {
-  flex: 1;
+  flex: 0.8; /* Reduced from flex: 1 to save space */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 10px 20px;
+  gap: 2px; /* Reduced gap */
+  padding: 6px 20px; /* Reduced padding */
 }
 .split-row {
   display: flex;
@@ -185,12 +185,12 @@ html, body {
   color: #8A8377;
   font-variant-numeric: tabular-nums;
 }
-.split-label { font-size: 11px; letter-spacing: 0.1em; font-weight: 700; }
-.split-value { font-size: 20px; color: #C9C2B4; font-weight: 600; }
-.shot-count { margin-left: auto; font-size: 13px; }
+.split-label { font-size: 10px; letter-spacing: 0.1em; font-weight: 700; }
+.split-value { font-size: 18px; color: #C9C2B4; font-weight: 600; }
+.shot-count { margin-left: auto; font-size: 12px; }
 
 .big-time {
-  font-size: min(26vw, 128px);
+  font-size: min(24vw, 110px); /* Slightly smaller font */
   font-weight: 800;
   line-height: 1;
   color: #FF9D1F;
@@ -230,9 +230,8 @@ html, body {
 
 /* ---------- Shot log ---------- */
 .shot-log-wrap {
-  flex-shrink: 0;
-  height: 34vh;
-  max-height: 260px;
+  flex: 1; /* Allow it to grow while others shrink */
+  min-height: 0; /* Important for flex-shrink to work */
   border-top: 1px solid #2A2620;
   display: flex;
   flex-direction: column;
@@ -240,7 +239,7 @@ html, body {
 .shot-log-header {
   display: grid;
   grid-template-columns: 40px 1fr 1fr 40px;
-  padding: 8px 16px;
+  padding: 6px 16px; /* Reduced padding */
   font-size: 10px;
   letter-spacing: 0.1em;
   color: #8A8377;
@@ -254,8 +253,8 @@ html, body {
 .shot-row {
   display: grid;
   grid-template-columns: 40px 1fr 1fr 40px;
-  padding: 9px 16px;
-  font-size: 15px;
+  padding: 6px 16px; /* Reduced padding */
+  font-size: 14px; /* Reduced font size */
   font-variant-numeric: tabular-nums;
   border-bottom: 1px solid #1A1712;
   align-items: center;

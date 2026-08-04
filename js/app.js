@@ -566,7 +566,7 @@
     const high = Math.max(...drawSession.times);
     const avg = drawSession.times.reduce((a, b) => a + b, 0) / drawSession.times.length;
 
-    history.unshift({
+    const session = {
       date: new Date().toISOString(),
       mode: 'DRAW',
       time: avg, // main display uses avg
@@ -575,11 +575,15 @@
       times: [...drawSession.times],
       shots: drawSession.times.map(t => ({ time: t, split: 0 })),
       isDrawSession: true
-    });
+    };
+    history.unshift(session);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 200)));
     showToast(`Session saved! Avg: ${avg.toFixed(2)}s`);
     drawSession.active = false; // Set to false before reset
     resetRun(true);
+
+    // Automatically open the detail view for the session
+    renderRunDetail(session);
   }
 
   let lastFinalTime = 0;
@@ -1101,7 +1105,9 @@
     document.body.removeChild(a);
   }
 
-  els.historyBtn.addEventListener('click', () => {
+  els.historyBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     renderHistoryList();
     els.historyModal.classList.remove('hidden');
   });
