@@ -490,7 +490,7 @@
       els.bigTime.classList.remove('success');
       els.bigTime.classList.add('warning');
 
-      // Phase 2: Countdown in Red
+      // Phase 2: Wait for holster/reset period (No visual countdown for randomness)
       let countdown = parseFloat(els.drawRestartDelay.value) || 4.0;
       const tick = () => {
         if (actionMode !== 'DRAW' || phase === 'IDLE' || !drawSession.active) return;
@@ -501,8 +501,8 @@
           handleStart();
           return;
         }
-        els.bigTime.textContent = countdown.toFixed(1);
-        els.drawStatus.textContent = `RESTARTING IN ${countdown.toFixed(1)}s`;
+        els.bigTime.textContent = '0.00';
+        els.drawStatus.textContent = 'HOLSTER & PREP...';
         countdown -= 0.1;
         drawSession.restartTimer = setTimeout(tick, 100);
       };
