@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2663071771133784"
+     crossorigin="anonymous"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d0c0b">
+<title>Range Timer</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Controls (Moved to top) -->
+  <header class="controls">
+    <button class="btn btn-ghost" id="hitFactorBtn">SCORE</button>
+    <button class="btn btn-primary" id="startBtn">START</button>
+    <button class="btn btn-ghost" id="resetBtn">RESET</button>
+  </header>
+
+  <!-- Status strip: mic level + arm state -->
+  <div class="status-strip">
+    <div class="mic-wave" id="micWave">
+      <svg viewBox="0 0 300 40" preserveAspectRatio="none" id="waveSvg">
+        <polyline id="wavePoly" points="" />
+      </svg>
+    </div>
+    <div class="state-pill" id="statePill">IDLE</div>
+  </div>
+
+  <!-- Main display -->
+  <main class="display-wrap">
+    <div class="split-row">
+      <span class="split-label">SPLIT</span>
+      <span class="split-value" id="splitValue">0.00</span>
+      <span class="shot-count" id="shotCount">#0</span>
+    </div>
+    <div class="big-time" id="bigTime">0.00</div>
+    <div class="sub-row" id="subRow">MAX TIME: <span id="maxTimeLabel">—</span></div>
+    <div class="assessment-info hidden" id="assessmentInfo">
+      <span id="assessmentDistance">7 YARDS</span> · <span id="assessmentProgress">SET 1/3</span>
+    </div>
+    <div class="draw-info hidden" id="drawInfo">
+      <div id="drawStatus">DRAW SESSION</div>
+      <div class="draw-stats-mini">
+        LOW: <b id="drawLow">—</b> · HIGH: <b id="drawHigh">—</b> · AVG: <b id="drawAvg">—</b>
+      </div>
+    </div>
+  </main>
+
+  <!-- Shot log -->
+  <section class="shot-log-wrap">
+    <div class="shot-log-header">
+      <span>#</span><span>TIME</span><span>SPLIT</span>
+    </div>
+    <div class="shot-log" id="shotLog"></div>
+  </section>
+
+  <!-- Header (Moved to bottom) -->
+  <footer class="topbar">
+    <div class="topbar-row">
+      <span class="eyebrow">RANGE TIMER</span>
+      <div class="mode-selectors">
+        <button class="btn btn-mode" id="actionModeBtn">ACTION: STANDARD</button>
+        <button class="btn btn-mode" id="timerModeBtn">TIMER: COMSTOCK</button>
+      </div>
+      <button class="icon-btn" id="reloadBtn" aria-label="Check for updates">⟳</button>
+      <button class="icon-btn" id="historyBtn" aria-label="History">📋</button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+    </div>
+
+    <div class="steel-stage-wrap hidden" id="steelStageWrap">
+      <select id="steelStage">
+        <option value="Five To Go">Five To Go</option>
+        <option value="Showdown">Showdown</option>
+        <option value="Smoke & Hope">Smoke & Hope</option>
+        <option value="Outer Limits">Outer Limits</option>
+        <option value="Accelerator">Accelerator</option>
+        <option value="Pendulum">Pendulum</option>
+        <option value="Speed Option">Speed Option</option>
+        <option value="Roundabout">Roundabout</option>
+        <option value="Custom (5 Hits)">Custom (5 Hits)</option>
+      </select>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Calibration modal -->
+<div class="modal-backdrop hidden" id="calModal">
+  <div class="modal">
+    <h2>Calibrate mic</h2>
+    <p id="calInstructions">Fire one shot (or clap loudly) within the window below. We'll set the detection threshold from the peak we hear.</p>
+    <div class="cal-wave-box">
+      <svg viewBox="0 0 300 80" preserveAspectRatio="none" id="calWaveSvg">
+        <polyline id="calWavePoly" points="" />
+        <line id="calThresholdLine" x1="0" y1="40" x2="300" y2="40" />
+      </svg>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="calProgress"></div></div>
+    <div class="cal-readout" id="calReadout">Listening…</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="calCancelBtn">Cancel</button>
+      <button class="btn btn-primary hidden" id="calRetestBtn">Test again</button>
+      <button class="btn btn-primary hidden" id="calAcceptBtn">Use this</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-backdrop hidden" id="settingsModal">
+  <div class="modal">
+    <h2>Settings</h2>
+
+    <div class="field-row">
+      <label>Random delay</label>
+      <div class="range-pair">
+        <input type="number" id="delayMin" step="0.1" min="0.5" value="1.0"> –
+        <input type="number" id="delayMax" step="0.1" min="0.5" value="4.0"> s
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Sensitivity</label>
+      <input type="range" id="sensSlider" min="0" max="100" value="60">
+      <span id="sensReadout">60%</span>
+    </div>
+
+    <div class="field-row">
+      <label>Par time (PAR mode)</label>
+      <div class="range-pair">
+        <input type="number" id="parTime" step="0.1" min="0.5" value="6.0"> s
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Max time (VIRGINIA)</label>
+      <div class="range-pair">
+        <input type="number" id="maxTime" step="0.5" min="1" value="10"> s
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label>Draw auto-restart delay</label>
+      <div class="range-pair">
+        <input type="number" id="drawRestartDelay" step="0.5" min="1.0" value="4.0"> s
+      </div>
+    </div>
+
+    <div class="field-row">
+      <label class="check-label">
+        <input type="checkbox" id="recoilEnabled">
+        Recoil Detection (Accelerometer)
+      </label>
+      <p class="field-hint">Helps detect shots via movement when phone is in a pocket/belt. Requires phone permission.</p>
+    </div>
+
+    <button class="btn btn-primary full" id="calibrateBtn">Calibrate microphone</button>
+    <div class="cal-status" id="calStatusLine">Not calibrated yet — using default sensitivity.</div>
+
+    <button class="btn btn-ghost full" id="settingsCloseBtn">Close</button>
+  </div>
+</div>
+
+<!-- Hit factor / scoring modal -->
+<div class="modal-backdrop hidden" id="scoreModal">
+  <div class="modal">
+    <h2>Score string</h2>
+    <p class="score-time">Final time: <span id="scoreTime">0.00</span>s</p>
+
+    <div class="score-grid" id="scoreGrid">
+      <!-- rows injected by JS -->
+    </div>
+
+    <div class="field-row">
+      <label>Power Factor</label>
+      <div class="mode-tabs" id="pfTabs">
+        <button class="mode-tab active" data-pf="minor">MINOR</button>
+        <button class="mode-tab" data-pf="major">MAJOR</button>
+      </div>
+    </div>
+
+    <div class="field-row hidden" id="steelScoringWrap">
+      <label>Misses (+3s each)</label>
+      <div class="score-cell" style="grid-column: span 3;">
+        <div class="stepper">
+          <button id="missMinus">−</button>
+          <span class="count" id="missCount">0</span>
+          <button id="missPlus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hf-readout">
+      <span>Points: <b id="scorePoints">0</b></span>
+      <span>Hit Factor: <b id="scoreHF">0.00</b></span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="scoreCloseBtn">Close</button>
+      <button class="btn btn-primary" id="scoreSaveBtn">Save to history</button>
+    </div>
+
+    <!-- Minimal Ad Placeholder -->
+    <div class="ad-placeholder">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-2663071771133784"
+           data-ad-slot="auto"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-backdrop hidden" id="historyModal">
+  <div class="modal full-height">
+    <div class="modal-header">
+      <h2>History</h2>
+      <button class="btn btn-ghost sm" id="exportCsvBtn">Export CSV</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <!-- items injected by JS -->
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="historyCloseBtn">Close</button>
+    </div>
+    <div class="ad-placeholder">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-2663071771133784"
+           data-ad-slot="auto"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  </div>
+</div>
+
+<!-- Run Detail Modal -->
+<div class="modal-backdrop hidden" id="detailModal">
+  <div class="modal">
+    <h2 id="detailTitle">Run Detail</h2>
+    <div class="detail-stats" id="detailStats">
+      <!-- stats injected by JS -->
+    </div>
+    <div class="detail-chart-wrap">
+      <h3>Split Rhythm</h3>
+      <div id="detailChart"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="detailDeleteBtn" style="color: #E4432B;">Delete</button>
+      <button class="btn btn-ghost" id="detailEditBtn">Edit Hits</button>
+      <button class="btn btn-ghost" id="detailCloseBtn">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action Picker Modal -->
+<div class="modal-backdrop hidden" id="actionModal">
+  <div class="modal">
+    <h2>Select Action Mode</h2>
+    <div class="picker-list">
+      <button class="picker-item active" data-action="STANDARD">Standard Timing</button>
+      <button class="picker-item" data-action="STEEL">Steel Challenge</button>
+      <button class="picker-item" data-action="ASSESSMENT">Fundamentals Assessment</button>
+      <button class="picker-item" data-action="DRAW">Draw Session</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="actionCloseBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timer Picker Modal -->
+<div class="modal-backdrop hidden" id="timerModal">
+  <div class="modal">
+    <h2>Select Timer Mode</h2>
+    <div class="picker-list">
+      <button class="picker-item active" data-timer="COMSTOCK">Comstock (Continuous)</button>
+      <button class="picker-item" data-timer="VIRGINIA">Virginia (Auto-Stop)</button>
+      <button class="picker-item" data-timer="PAR">Par (Time Limit Beep)</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost full" id="timerCloseBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<audio id="beepAudio" preload="auto"></audio>
+<div class="toast hidden" id="toast"></div>
+
+<script src="js/audioDetector.js"></script>
+<script src="js/hitFactor.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
